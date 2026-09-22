@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/server.schema.json",
+  "name": "io.github.agentsearch/agentsearch-mcp",
+  "description": "AgentSearch web search (and optional page extract) via MCP stdio. Direct local API or Pocket portal.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/agentsearch/agentsearch-mcp",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "agentsearch-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AGENTSEARCH_MODE",
+          "description": "direct | portal (default direct)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "AGENTSEARCH_BASE_URL",
+          "description": "Base URL for direct mode (default http://127.0.0.1:8000)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "AGENTSEARCH_API_KEY",
+          "description": "Optional Bearer token for direct mode",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

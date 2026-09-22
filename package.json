@@ -1,0 +1,42 @@
+{
+  "name": "agentsearch-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for AgentSearch web search (and optional extract) — direct or Pocket portal",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agentsearch-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    ".env.example",
+    "server.json",
+    "smithery.yaml"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "prepare": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "agentsearch",
+    "web-search",
+    "pocket-network"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}
