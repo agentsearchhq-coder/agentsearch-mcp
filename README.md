@@ -169,9 +169,18 @@ No paid promo — list the package so tools can discover it via registries and u
 
 ### Smithery
 
-1. Use `smithery.yaml` start command metadata in this repo
-2. Publish via [Smithery](https://smithery.ai) CLI or dashboard (`npx @smithery/cli` / site instructions)
-3. Confirm install snippet for Cursor/clients
+Local stdio distribution uses the MCPB manifest at `manifest.json` (tools, Node 20 runtime, and install-time config for mode, base URL, and optional API key). `smithery.yaml` is the legacy start-command metadata.
+
+```bash
+npm install
+npm run validate:mcpb
+npm run pack:mcpb
+npx @smithery/cli mcp publish ./agentsearch-mcp.mcpb -n agentsearchhq-coder/agentsearch-mcp
+```
+
+`npm run pack:mcpb` builds `dist/` and packs production dependencies into `agentsearch-mcp.mcpb` (gitignored, under Smithery's 25 MB archive limit). Leave the API key blank when the direct API does not need one; unresolved `${user_config.*}` values are treated as unset.
+
+Smithery's CLI currently forwards MCPB tool entries without an `inputSchema`. If publish rejects the bundle for that field, it is [smithery-ai/cli#787](https://github.com/smithery-ai/cli/issues/787). This manifest stays valid MCPB (`name` and `description` only).
 
 ### Glama
 

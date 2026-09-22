@@ -10,3 +10,5 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+*.mcpb
+.mcpb-stage/

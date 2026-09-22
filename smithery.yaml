@@ -1,4 +1,4 @@
-# Smithery.ai publish metadata for agentsearch-mcp
+# Legacy Smithery startCommand metadata. stdio publish uses manifest.json (MCPB).
 startCommand:
   type: stdio
   configSchema:

@@ -1,0 +1,7 @@
+# Source and tooling stay out of the bundle. dist/ and node_modules/ are packed.
+src/
+*.ts
+tsconfig.json
+*.mcpb
+.cursor/
+.github/

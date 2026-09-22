@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/schemas/mcpb-manifest-v0.3.schema.json",
+  "manifest_version": "0.3",
+  "name": "agentsearch-mcp",
+  "display_name": "AgentSearch",
+  "version": "1.0.0",
+  "description": "AgentSearch web search and optional page extract over MCP stdio (direct API or Pocket portal).",
+  "long_description": "MCP server for [AgentSearch](https://agentsearchhq.com) web search.\n\n- `agentsearch_web_search` searches via a local AgentSearch API (`direct`) or the Pocket Network agent portal (`portal`).\n- `agentsearch_extract` fetches page content from `POST /v1/extract` in direct mode.\n\nConfigure the mode, base URL, and optional API key at install time. Defaults match a local server at `http://127.0.0.1:8000`.",
+  "author": {
+    "name": "AgentSearch",
+    "url": "https://github.com/agentsearchhq-coder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp"
+  },
+  "homepage": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
+  "documentation": "https://github.com/agentsearchhq-coder/agentsearch-mcp#readme",
+  "support": "https://github.com/agentsearchhq-coder/agentsearch-mcp/issues",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "AGENTSEARCH_MODE": "${user_config.agentsearchMode}",
+        "AGENTSEARCH_BASE_URL": "${user_config.agentsearchBaseUrl}",
+        "AGENTSEARCH_API_KEY": "${user_config.agentsearchApiKey}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "agentsearch_web_search",
+      "description": "Search the web via AgentSearch. Uses AGENTSEARCH_MODE=direct (local API) or portal (Pocket). Returns structured JSON results."
+    },
+    {
+      "name": "agentsearch_extract",
+      "description": "Extract page content from a URL via AgentSearch POST /v1/extract (direct mode only)."
+    }
+  ],
+  "keywords": ["mcp", "agentsearch", "web-search", "pocket-network"],
+  "license": "MIT",
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  },
+  "user_config": {
+    "agentsearchMode": {
+      "type": "string",
+      "title": "Mode",
+      "description": "direct talks to a local AgentSearch API. portal uses the Pocket Network agent portal.",
+      "default": "direct",
+      "required": false
+    },
+    "agentsearchBaseUrl": {
+      "type": "string",
+      "title": "Base URL",
+      "description": "Base URL for direct mode. No trailing slash. Ignored for search when mode is portal.",
+      "default": "http://127.0.0.1:8000",
+      "required": false
+    },
+    "agentsearchApiKey": {
+      "type": "string",
+      "title": "API key",
+      "description": "Optional Bearer token for direct mode. Leave blank if the API does not require one.",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}

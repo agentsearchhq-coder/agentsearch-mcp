@@ -44,13 +44,23 @@ export class AgentSearchHttpError extends Error {
 const PORTAL_SEARCH_URL =
   "https://agent.pocket.network/v1/agentsearch-web-search-v1/v1/search";
 
+/** Blank values and unresolved MCPB `${...}` templates count as unset. */
+function readEnv(name: string): string | undefined {
+  const raw = process.env[name];
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed || /^\$\{[^}]+\}$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 export function loadConfig(): AgentSearchConfig {
-  const rawMode = (process.env.AGENTSEARCH_MODE ?? "direct").trim().toLowerCase();
+  const rawMode = (readEnv("AGENTSEARCH_MODE") ?? "direct").toLowerCase();
   const mode: AgentSearchMode = rawMode === "portal" ? "portal" : "direct";
-  const baseUrl = (
-    process.env.AGENTSEARCH_BASE_URL ?? "http://127.0.0.1:8000"
-  ).replace(/\/+$/, "");
-  const apiKey = process.env.AGENTSEARCH_API_KEY?.trim() || undefined;
+  const baseUrl = (readEnv("AGENTSEARCH_BASE_URL") ?? "http://127.0.0.1:8000").replace(
+    /\/+$/,
+    ""
+  );
+  const apiKey = readEnv("AGENTSEARCH_API_KEY");
   return { mode, baseUrl, apiKey };
 }
 
