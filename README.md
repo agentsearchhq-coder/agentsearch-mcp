@@ -169,9 +169,14 @@ No paid promo — list the package so tools can discover it via registries and u
 
 ### Smithery
 
-1. Use `smithery.yaml` start command metadata in this repo
-2. Publish via [Smithery](https://smithery.ai) CLI or dashboard (`npx @smithery/cli` / site instructions)
-3. Confirm install snippet for Cursor/clients
+Pack a local stdio MCPB bundle, then publish it (replace `<namespace>` with your Smithery namespace):
+
+```bash
+npm run mcpb:pack
+smithery mcp publish ./agentsearch-mcp.mcpb -n <namespace>/agentsearch-mcp
+```
+
+`npm run mcpb:pack` compiles TypeScript to `dist/index.js`, installs production dependencies, then writes `agentsearch-mcp.mcpb`. Check the manifest with `npm run mcpb:validate`. `manifest.json` (MCPB 0.3) launches `node ${__dirname}/dist/index.js` and maps optional `AGENTSEARCH_MODE` (default `direct`), `AGENTSEARCH_BASE_URL` (default `http://127.0.0.1:8000`), and sensitive `AGENTSEARCH_API_KEY`. `smithery.yaml` remains as start-command metadata.
 
 ### Glama
 

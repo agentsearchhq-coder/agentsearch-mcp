@@ -1,0 +1,78 @@
+{
+  "manifest_version": "0.3",
+  "name": "agentsearch-mcp",
+  "display_name": "AgentSearch MCP",
+  "version": "1.0.0",
+  "description": "MCP server for AgentSearch web search and optional page extract (direct API or Pocket portal).",
+  "long_description": "Stdio MCP server that calls AgentSearch web search and, in direct mode, URL extract. Configure AGENTSEARCH_MODE (direct or portal), AGENTSEARCH_BASE_URL, and an optional AGENTSEARCH_API_KEY.",
+  "author": {
+    "name": "AgentSearch",
+    "url": "https://github.com/agentsearchhq-coder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp"
+  },
+  "homepage": "https://agentsearchhq.com",
+  "documentation": "https://github.com/agentsearchhq-coder/agentsearch-mcp#readme",
+  "support": "https://github.com/agentsearchhq-coder/agentsearch-mcp/issues",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "agentsearch",
+    "web-search",
+    "pocket-network"
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20"
+    }
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "AGENTSEARCH_MODE": "${user_config.AGENTSEARCH_MODE}",
+        "AGENTSEARCH_BASE_URL": "${user_config.AGENTSEARCH_BASE_URL}",
+        "AGENTSEARCH_API_KEY": "${user_config.AGENTSEARCH_API_KEY}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "agentsearch_web_search",
+      "description": "Search the web via AgentSearch (direct local API or Pocket portal)."
+    },
+    {
+      "name": "agentsearch_extract",
+      "description": "Extract page content from a URL (direct mode only)."
+    }
+  ],
+  "user_config": {
+    "AGENTSEARCH_MODE": {
+      "type": "string",
+      "title": "AgentSearch mode",
+      "description": "direct (local or self-hosted API) or portal (Pocket Network). Default direct.",
+      "default": "direct",
+      "required": false
+    },
+    "AGENTSEARCH_BASE_URL": {
+      "type": "string",
+      "title": "AgentSearch base URL",
+      "description": "Base URL for direct mode, without a trailing slash.",
+      "default": "http://127.0.0.1:8000",
+      "required": false
+    },
+    "AGENTSEARCH_API_KEY": {
+      "type": "string",
+      "title": "AgentSearch API key",
+      "description": "Optional Bearer token for direct mode. Leave blank if the API does not require a key.",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}
