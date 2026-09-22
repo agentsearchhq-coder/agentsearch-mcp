@@ -1,6 +1,7 @@
 {
   "name": "agentsearch-mcp",
   "version": "1.0.0",
+  "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "description": "MCP server for AgentSearch web search (and optional extract) — direct or Pocket portal",
   "type": "module",
   "main": "dist/index.js",

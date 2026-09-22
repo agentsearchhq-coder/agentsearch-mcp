@@ -1,10 +1,9 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/server.schema.json",
-  "name": "io.github.agentsearch/agentsearch-mcp",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "description": "AgentSearch web search (and optional page extract) via MCP stdio. Direct local API or Pocket portal.",
-  "status": "active",
   "repository": {
-    "url": "https://github.com/agentsearch/agentsearch-mcp",
+    "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
   "version": "1.0.0",
