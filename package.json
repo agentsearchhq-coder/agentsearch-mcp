@@ -13,13 +13,17 @@
     "README.md",
     ".env.example",
     "server.json",
-    "smithery.yaml"
+    "smithery.yaml",
+    "manifest.json",
+    ".mcpbignore"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "prepare": "npm run build",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "mcpb:validate": "mcpb validate manifest.json",
+    "mcpb:pack": "npm run build && node scripts/pack-mcpb.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -37,6 +41,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0"
   }

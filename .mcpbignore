@@ -1,0 +1,43 @@
+# Extra exclusions for `mcpb pack` (combined with the CLI defaults:
+# .git, *.map, node_modules/.cache, node_modules/.bin, logs, lockfiles).
+# Leading / anchors a pattern to the repo root so it does not strip
+# files inside bundled node_modules.
+
+.git/
+.github/
+.cursor/
+.vscode/
+.idea/
+
+# TypeScript sources; the Node entry is dist/index.js.
+# Source maps (dist/*.js.map from tsc sourceMap) are excluded by default;
+# listed here so they stay out if that default changes.
+/src/
+*.js.map
+*.mjs.map
+*.cjs.map
+*.ts.map
+*.tsbuildinfo
+
+# Secrets and local env. .env.example has no secrets and may ship.
+.env
+.env.*
+!.env.example
+
+# Tests and coverage
+/tests/
+/test/
+/coverage/
+/__tests__/
+
+# Dev-only trees if packing the repo root (the pack script installs
+# production dependencies in a staging directory instead).
+/node_modules/typescript/
+/node_modules/@types/
+/node_modules/@anthropic-ai/
+/scripts/
+
+# Pack output and npm tarballs
+*.mcpb
+*.tgz
+*.log
