@@ -36,6 +36,16 @@ On portal **HTTP 402**, the search tool returns a clear MCP error that **x402 pa
 
 ## Install & build
 
+Published package:
+
+```bash
+npx -y @agentsearchhq/agentsearch-mcp
+# or install into a project
+npm i @agentsearchhq/agentsearch-mcp
+```
+
+From a local checkout:
+
 ```bash
 cd agentsearch-mcp
 npm install
@@ -88,7 +98,7 @@ After `npm install && npm run build`, optionally use the bin:
   "mcpServers": {
     "agentsearch": {
       "command": "npx",
-      "args": ["-y", "agentsearch-mcp"],
+      "args": ["-y", "@agentsearchhq/agentsearch-mcp"],
       "env": {
         "AGENTSEARCH_MODE": "direct",
         "AGENTSEARCH_BASE_URL": "http://127.0.0.1:8000"
@@ -98,7 +108,7 @@ After `npm install && npm run build`, optionally use the bin:
 }
 ```
 
-(Local path form is recommended until the package is published to npm.)
+Use `npx -y @agentsearchhq/agentsearch-mcp` (or `npm i @agentsearchhq/agentsearch-mcp`) once the package is on npm. The local path form is for a checkout of this repo.
 
 Optional API key (direct only):
 
@@ -157,15 +167,15 @@ No paid promo — list the package so tools can discover it via registries and u
 
 ### npm
 
-1. `npm login`
-2. Confirm `name` / `version` in `package.json`
-3. `npm publish --access public` (ensure `prepare`/`build` succeed; no secrets in the tarball)
+1. `npm login` (the `@agentsearchhq` org must allow the publisher)
+2. Confirm `name` is `@agentsearchhq/agentsearch-mcp` and `version` is `1.0.0` in `package.json` (`publishConfig.access` is `public`)
+3. `npm publish` (ensure `prepare`/`build` succeed; no secrets in the tarball)
 
 ### MCP Registry
 
 1. Ensure `server.json` matches your npm package + stdio transport
 2. Follow the [MCP Registry](https://github.com/modelcontextprotocol/registry) publish flow (authenticate publisher, submit server metadata)
-3. Verify the listing resolves `agentsearch-mcp` / stdio
+3. Verify the listing resolves `@agentsearchhq/agentsearch-mcp` / stdio
 
 ### Smithery
 
