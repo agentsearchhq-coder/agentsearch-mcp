@@ -45,11 +45,11 @@
   "tools": [
     {
       "name": "agentsearch_web_search",
-      "description": "Search the web via AgentSearch (direct local API or Pocket portal)."
+      "description": "Search the web via AgentSearch (direct or Pocket portal) and return JSON text. Use extract when you already have a URL. Read-only."
     },
     {
       "name": "agentsearch_extract",
-      "description": "Extract page content from a URL (direct mode only)."
+      "description": "Extract one page from a URL (direct mode only). Use web search to find URLs. Read-only; returns JSON text."
     }
   ],
   "user_config": {
