@@ -169,14 +169,24 @@ No paid promo — list the package so tools can discover it via registries and u
 
 ### Smithery
 
-Pack a local stdio MCPB bundle, then publish it (replace `<namespace>` with your Smithery namespace):
+Publish with the durable helper (preferred):
+
+```bash
+npm run smithery:publish
+```
+
+That runs `scripts/publish-smithery.mjs`, which ensures `agentsearch-mcp.mcpb` exists (`npm run mcpb:pack` if missing), idempotently patches the global Smithery CLI so the deploy payload always includes a tool `inputSchema` object when the MCPB omitted it, then runs `smithery mcp publish ./agentsearch-mcp.mcpb -n agentsearchhq/agentsearch-mcp`.
+
+**MCPB note:** `manifest.json` must **omit** tool `inputSchema` — `mcpb validate` rejects it. The publish helper patches the CLI payload side instead.
+
+Manual equivalent (after CLI is patched):
 
 ```bash
 npm run mcpb:pack
-smithery mcp publish ./agentsearch-mcp.mcpb -n <namespace>/agentsearch-mcp
+smithery mcp publish ./agentsearch-mcp.mcpb -n agentsearchhq/agentsearch-mcp
 ```
 
-`npm run mcpb:pack` compiles TypeScript to `dist/index.js`, installs production dependencies, then writes `agentsearch-mcp.mcpb`. Check the manifest with `npm run mcpb:validate`. `manifest.json` (MCPB 0.3) launches `node ${__dirname}/dist/index.js` and maps optional `AGENTSEARCH_MODE` (default `direct`), `AGENTSEARCH_BASE_URL` (default `http://127.0.0.1:8000`), and sensitive `AGENTSEARCH_API_KEY`. `smithery.yaml` remains as start-command metadata.
+`npm run mcpb:pack` compiles TypeScript to `dist/index.js`, installs production dependencies, then writes `agentsearch-mcp.mcpb`. Check the manifest with `npm run mcpb:validate`. `manifest.json` (MCPB 0.3) launches `node ${__dirname}/dist/index.js` and maps optional `AGENTSEARCH_MODE` (default `direct`), `AGENTSEARCH_BASE_URL` (default `http://127.0.0.1:8000`), and sensitive `AGENTSEARCH_API_KEY`. `smithery.yaml` remains as start-command metadata. Dry-run patch detection only: `node scripts/publish-smithery.mjs --dry-patch`.
 
 ### Glama
 

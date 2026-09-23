@@ -23,7 +23,8 @@
     "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "mcpb:validate": "mcpb validate manifest.json",
-    "mcpb:pack": "npm run build && node scripts/pack-mcpb.mjs"
+    "mcpb:pack": "npm run build && node scripts/pack-mcpb.mjs",
+    "smithery:publish": "node scripts/publish-smithery.mjs"
   },
   "engines": {
     "node": ">=20"
