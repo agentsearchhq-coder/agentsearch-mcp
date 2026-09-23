@@ -20,10 +20,10 @@ Pocket explorer: [agentsearch-web-search-v1](https://explorer.pocket.network/ser
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–10) | Calls the search backend; returns JSON text |
-| `agentsearch_extract` | `url` (string), `formats` (string[], optional), `max_chars` (number, optional) | `POST /v1/extract` — **direct mode only** |
+| `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–10) | Web search in direct or portal mode. Returns pretty-printed JSON. Use for a query; use extract when you already have a URL. Read-only HTTP. |
+| `agentsearch_extract` | `url` (absolute URL, required), `formats` (string[], optional), `max_chars` (positive integer, optional) | Page extract via `POST /v1/extract`. **Direct mode only** — portal fails before any request. Use when you already have a URL. Read-only HTTP. |
 
-On portal **HTTP 402**, the search tool returns a clear MCP error that **x402 payment is required** (or switch to `AGENTSEARCH_MODE=direct`).
+On portal **HTTP 402**, the search tool returns a clear MCP error that **x402 payment is required** (or switch to `AGENTSEARCH_MODE=direct`). In portal mode, `agentsearch_extract` does not call the network; it returns an MCP error telling you to switch to direct mode or use search.
 
 ---
 
