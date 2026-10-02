@@ -56,7 +56,7 @@ npm install
 npm run build
 ```
 
-Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `test` → build + `node --test test/`, `prepare` → runs build (for publish).
+Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `test` → build + `node --test test/*.mjs`, `prepare` → runs build (for publish).
 
 Binary: `agentsearch-mcp` → `dist/index.js`
 

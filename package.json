@@ -28,7 +28,7 @@
     "mcpb:validate": "mcpb validate manifest.json",
     "mcpb:pack": "npm run build && node scripts/pack-mcpb.mjs",
     "smithery:publish": "node scripts/publish-smithery.mjs",
-    "test": "npm run build && node --test test/"
+    "test": "npm run build && node --test \"test/*.mjs\""
   },
   "engines": {
     "node": ">=20"
