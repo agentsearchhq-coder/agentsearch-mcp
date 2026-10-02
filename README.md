@@ -1,6 +1,6 @@
 # agentsearch-mcp
 
-MCP (Model Context Protocol) server that exposes **AgentSearch** web search — and optional URL extract — to Cursor, Claude Desktop, and other MCP hosts over **stdio**.
+MCP (Model Context Protocol) server that exposes **AgentSearch** web search — plus optional URL extract and JavaScript page rendering (headless browser) — to Cursor, Claude Desktop, and other MCP hosts over **stdio**.
 
 [AgentSearch](https://agentsearchhq.com) is a web-search API aimed at agents. You can run it against a **local/self-hosted** AgentSearch instance (`direct` mode) or the **Pocket Network agent portal** (`portal` mode).
 
@@ -9,6 +9,7 @@ MCP (Model Context Protocol) server that exposes **AgentSearch** web search — 
   body: `{ "query": "...", "max_results": 5 }`
 - Direct search: `POST {AGENTSEARCH_BASE_URL}/v1/search` with the same body  
 - Direct extract: `POST {AGENTSEARCH_BASE_URL}/v1/extract`
+- Direct render: `POST {AGENTSEARCH_BASE_URL}/v1/render` (headless Chromium; [OpenAPI spec](https://agentsearchhq.com/specs/render-openapi.json))
 
 Pocket explorer: [agentsearch-web-search-v1](https://explorer.pocket.network/service/agentsearch-web-search-v1)
 
@@ -22,8 +23,11 @@ Pocket explorer: [agentsearch-web-search-v1](https://explorer.pocket.network/ser
 |------|------|-------------|
 | `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–10) | Web search in direct or portal mode. Returns pretty-printed JSON. Use for a query; use extract when you already have a URL. Read-only HTTP. |
 | `agentsearch_extract` | `url` (absolute URL, required), `formats` (string[], optional), `max_chars` (positive integer, optional) | Page extract via `POST /v1/extract`. **Direct mode only** — portal fails before any request. Use when you already have a URL. Read-only HTTP. |
+| `agentsearch_render` | `url` (absolute http(s) URL, required); optional: `formats` (`markdown`\|`text`\|`html`\|`links`, default `["markdown"]`), `max_chars` (1–100000), `screenshot`, `screenshot_format` (`png`\|`jpeg`), `full_page`, `viewport` (`{width 320–1920, height 240–1600}`), `wait_until` (`domcontentloaded`\|`load`\|`networkidle`), `wait_for_selector`, `wait_ms` (0–1500), `block` (`image`\|`media`\|`font`\|`stylesheet`) | Renders a JavaScript-heavy page in headless Chromium via `POST /v1/render` and returns title, status, meta, and the rendered markdown/text/HTML/links (plus optional base64 screenshot). **Direct mode only** — the portal render endpoint isn't live yet, so portal fails before any request. Use when extract returns empty/partial content for an SPA; prefer extract for static pages. Read-only HTTP. |
 
-On portal **HTTP 402**, the search tool returns a clear MCP error that **x402 payment is required** (or switch to `AGENTSEARCH_MODE=direct`). In portal mode, `agentsearch_extract` does not call the network; it returns an MCP error telling you to switch to direct mode or use search.
+On portal **HTTP 402**, the search tool returns a clear MCP error that **x402 payment is required** (or switch to `AGENTSEARCH_MODE=direct`). In portal mode, `agentsearch_extract` and `agentsearch_render` do not call the network; they return an MCP error telling you to switch to direct mode or use search.
+
+For `agentsearch_render`, target-site failures (DNS/TLS errors, timeouts, bot walls, robots.txt) come back as a normal result whose JSON has a non-null `error` object (`code`, `message`, `retryable`); bad input (400), oversize body (413), rate limits (429) and backend faults (500) are MCP errors. The backend enforces a ~4.2 s render deadline.
 
 ---
 
@@ -52,7 +56,7 @@ npm install
 npm run build
 ```
 
-Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `prepare` → runs build (for publish).
+Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `test` → build + `node --test test/`, `prepare` → runs build (for publish).
 
 Binary: `agentsearch-mcp` → `dist/index.js`
 
@@ -168,7 +172,7 @@ No paid promo — list the package so tools can discover it via registries and u
 ### npm
 
 1. `npm login` (the `@agentsearchhq` org must allow the publisher)
-2. Confirm `name` is `@agentsearchhq/agentsearch-mcp` and `version` is `1.0.0` in `package.json` (`publishConfig.access` is `public`)
+2. Confirm `name` is `@agentsearchhq/agentsearch-mcp` and `version` matches `manifest.json` / `server.json` (currently `1.1.0`) in `package.json` (`publishConfig.access` is `public`)
 3. `npm publish` (ensure `prepare`/`build` succeed; no secrets in the tarball)
 
 ### MCP Registry
