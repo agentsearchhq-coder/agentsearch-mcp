@@ -1,22 +1,16 @@
 #!/usr/bin/env node
 /**
  * AgentSearch MCP server — stdio transport.
- * Tools: agentsearch_web_search, agentsearch_extract
+ * Tools: agentsearch_web_search, agentsearch_extract, agentsearch_render
  */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerSearchTools } from "./tools/search.js";
 import { loadConfig } from "./client.js";
+import { createServer } from "./server.js";
 
 async function main(): Promise<void> {
   const cfg = loadConfig();
-  const server = new McpServer({
-    name: "agentsearch-mcp",
-    version: "1.0.0",
-  });
-
-  registerSearchTools(server);
+  const server = createServer();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

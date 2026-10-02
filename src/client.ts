@@ -1,5 +1,5 @@
 /**
- * HTTP client for AgentSearch search + extract backends.
+ * HTTP client for AgentSearch search, extract, and render backends.
  * Modes: direct (local/self-hosted) | portal (Pocket agent portal).
  */
 
@@ -21,6 +21,28 @@ export interface ExtractRequest {
   formats?: string[];
   max_chars?: number;
 }
+
+export type RenderFormat = "markdown" | "text" | "html" | "links";
+export type RenderBlockType = "image" | "media" | "font" | "stylesheet";
+export type RenderWaitUntil = "domcontentloaded" | "load" | "networkidle";
+
+/** Mirrors RenderRequest in https://agentsearchhq.com/specs/render-openapi.json */
+export interface RenderRequest {
+  url: string;
+  formats?: RenderFormat[];
+  max_chars?: number;
+  screenshot?: boolean;
+  screenshot_format?: "png" | "jpeg";
+  full_page?: boolean;
+  viewport?: { width?: number; height?: number };
+  wait_until?: RenderWaitUntil;
+  wait_for_selector?: string | null;
+  wait_ms?: number;
+  block?: RenderBlockType[];
+}
+
+export const RENDER_PORTAL_UNSUPPORTED_MESSAGE =
+  "agentsearch_render is only supported in AGENTSEARCH_MODE=direct (POST {BASE}/v1/render); the portal render endpoint is not live yet. Switch to direct mode, or use agentsearch_extract / agentsearch_web_search.";
 
 export class AgentSearchHttpError extends Error {
   readonly status: number;
@@ -62,6 +84,10 @@ function searchUrl(cfg: AgentSearchConfig): string {
 function extractUrl(cfg: AgentSearchConfig): string {
   // Extract is only defined for direct in this package; portal extract may differ.
   return `${cfg.baseUrl}/v1/extract`;
+}
+
+function renderUrl(cfg: AgentSearchConfig): string {
+  return `${cfg.baseUrl}/v1/render`;
 }
 
 async function postJson(
@@ -139,6 +165,36 @@ export async function extractPage(
   if (req.formats) body.formats = req.formats;
   if (req.max_chars !== undefined) body.max_chars = req.max_chars;
   return postJson(url, body, cfg.apiKey, { retryWithoutKeyOn401: true });
+}
+
+const RENDER_FIELDS = [
+  "formats",
+  "max_chars",
+  "screenshot",
+  "screenshot_format",
+  "full_page",
+  "viewport",
+  "wait_until",
+  "wait_for_selector",
+  "wait_ms",
+  "block",
+] as const;
+
+export async function renderPage(
+  cfg: AgentSearchConfig,
+  req: RenderRequest
+): Promise<unknown> {
+  if (cfg.mode === "portal") {
+    // Portal render endpoint is not live yet: fail before any network call.
+    throw new Error(RENDER_PORTAL_UNSUPPORTED_MESSAGE);
+  }
+  const body: Record<string, unknown> = { url: req.url };
+  for (const key of RENDER_FIELDS) {
+    if (req[key] !== undefined) body[key] = req[key];
+  }
+  return postJson(renderUrl(cfg), body, cfg.apiKey, {
+    retryWithoutKeyOn401: true,
+  });
 }
 
 export function clampMaxResults(n: number | undefined, fallback = 5): number {

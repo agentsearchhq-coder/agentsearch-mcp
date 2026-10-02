@@ -1,11 +1,11 @@
 {
   "name": "@agentsearchhq/agentsearch-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "publishConfig": {
     "access": "public"
   },
-  "description": "MCP server for AgentSearch web search (and optional extract) — direct or Pocket portal",
+  "description": "MCP server for AgentSearch web search, page extract and JavaScript rendering (headless browser) — direct or Pocket portal",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -27,7 +27,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "mcpb:validate": "mcpb validate manifest.json",
     "mcpb:pack": "npm run build && node scripts/pack-mcpb.mjs",
-    "smithery:publish": "node scripts/publish-smithery.mjs"
+    "smithery:publish": "node scripts/publish-smithery.mjs",
+    "test": "npm run build && node --test \"test/*.mjs\""
   },
   "engines": {
     "node": ">=20"
@@ -37,7 +38,10 @@
     "model-context-protocol",
     "agentsearch",
     "web-search",
-    "pocket-network"
+    "pocket-network",
+    "render",
+    "headless-browser",
+    "javascript-rendering"
   ],
   "license": "MIT",
   "dependencies": {

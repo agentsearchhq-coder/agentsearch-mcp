@@ -8,7 +8,7 @@ import {
   extractPage,
 } from "../client.js";
 
-function formatResult(data: unknown): string {
+export function formatResult(data: unknown): string {
   try {
     return JSON.stringify(data, null, 2);
   } catch {
@@ -16,7 +16,7 @@ function formatResult(data: unknown): string {
   }
 }
 
-function errorContent(err: unknown): {
+export function errorContent(err: unknown): {
   content: { type: "text"; text: string }[];
   isError: true;
 } {
@@ -36,7 +36,7 @@ function errorContent(err: unknown): {
 
 const WEB_SEARCH_DESCRIPTION = [
   "Search the web through AgentSearch and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
-  "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead.",
+  "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead (or agentsearch_render for JavaScript-heavy pages).",
   "Works in AGENTSEARCH_MODE=direct (default; POST {AGENTSEARCH_BASE_URL}/v1/search) or portal (Pocket).",
   "Read-only HTTP POST: not destructive, but it uses the network and can hit backend rate limits.",
   "Direct mode sends a Bearer token from AGENTSEARCH_API_KEY when that variable is set, and retries once without the key on HTTP 401; portal ignores the key, and HTTP 402 is an MCP error that x402 payment is required (or switch to direct).",
@@ -46,7 +46,7 @@ const WEB_SEARCH_DESCRIPTION = [
 
 const EXTRACT_DESCRIPTION = [
   "Extract the content of one absolute URL through AgentSearch and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
-  "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search instead.",
+  "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search instead; if the page is a JavaScript app whose content only appears after scripts run, use agentsearch_render.",
   "Direct mode only: AGENTSEARCH_MODE=portal fails immediately with an MCP error telling you to switch to direct or call search, and no HTTP request is sent; direct mode POSTs {AGENTSEARCH_BASE_URL}/v1/extract.",
   "Read-only HTTP POST: not destructive, but it fetches through AgentSearch and can hit network or backend rate limits.",
   "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key; HTTP 402 is an MCP error that x402 payment is required (or switch to direct), and any other HTTP failure includes the status and a truncated body.",
