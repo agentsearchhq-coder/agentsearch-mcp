@@ -1,10 +1,10 @@
 {
   "manifest_version": "0.3",
   "name": "agentsearch-mcp",
-  "display_name": "AgentSearch MCP",
-  "version": "1.1.0",
-  "description": "MCP server for AgentSearch web search, page extract, and JavaScript page rendering in headless Chromium (direct API or Pocket portal).",
-  "long_description": "Stdio MCP server that calls AgentSearch web search and, in direct mode, URL extract and Web Render (headless Chromium for JavaScript-heavy pages, returning title plus rendered markdown, text, HTML, links and an optional screenshot). Configure AGENTSEARCH_MODE (direct or portal), AGENTSEARCH_BASE_URL, and an optional AGENTSEARCH_API_KEY.",
+  "display_name": "AgentSearch (agentsearchhq.com)",
+  "version": "1.1.1",
+  "description": "MCP server for a self-hosted AgentSearch API: web search, page extract, and JavaScript page rendering in headless Chromium.",
+  "long_description": "Stdio MCP server for people running their own AgentSearch-compatible API. It calls web search, URL extract, and Web Render (headless Chromium for JavaScript-heavy pages, returning title plus rendered markdown, text, HTML, links, and an optional screenshot). AGENTSEARCH_BASE_URL is required. AGENTSEARCH_API_KEY is optional.",
   "author": {
     "name": "AgentSearch",
     "url": "https://github.com/agentsearchhq-coder"
@@ -21,7 +21,6 @@
     "mcp",
     "agentsearch",
     "web-search",
-    "pocket-network",
     "render",
     "headless-browser",
     "javascript-rendering"
@@ -45,7 +44,6 @@
         "${__dirname}/dist/index.js"
       ],
       "env": {
-        "AGENTSEARCH_MODE": "${user_config.AGENTSEARCH_MODE}",
         "AGENTSEARCH_BASE_URL": "${user_config.AGENTSEARCH_BASE_URL}",
         "AGENTSEARCH_API_KEY": "${user_config.AGENTSEARCH_API_KEY}"
       }
@@ -54,36 +52,28 @@
   "tools": [
     {
       "name": "agentsearch_web_search",
-      "description": "Search the web via AgentSearch (direct or Pocket portal) and return JSON text. Use extract when you already have a URL. Read-only."
+      "description": "Search the web via your self-hosted AgentSearch API and return JSON text. Use extract when you already have a URL. Read-only."
     },
     {
       "name": "agentsearch_extract",
-      "description": "Extract one page from a URL (direct mode only). Use web search to find URLs. Read-only; returns JSON text."
+      "description": "Extract one page from a URL. Use web search to find URLs. Read-only; returns JSON text."
     },
     {
       "name": "agentsearch_render",
-      "description": "Render one URL in headless Chromium (direct mode only) and return title plus rendered markdown/text/HTML/links as JSON text. Use for JavaScript-heavy pages where extract comes back empty; prefer extract for static pages. Read-only."
+      "description": "Render one URL in headless Chromium and return title plus rendered markdown/text/HTML/links as JSON text. Use for JavaScript-heavy pages where extract comes back empty; prefer extract for static pages. Read-only."
     }
   ],
   "user_config": {
-    "AGENTSEARCH_MODE": {
-      "type": "string",
-      "title": "AgentSearch mode",
-      "description": "direct (local or self-hosted API) or portal (Pocket Network). Default direct.",
-      "default": "direct",
-      "required": false
-    },
     "AGENTSEARCH_BASE_URL": {
       "type": "string",
       "title": "AgentSearch base URL",
-      "description": "Base URL for direct mode, without a trailing slash.",
-      "default": "http://127.0.0.1:8000",
-      "required": false
+      "description": "Required base URL of your self-hosted AgentSearch API, without a trailing slash.",
+      "required": true
     },
     "AGENTSEARCH_API_KEY": {
       "type": "string",
       "title": "AgentSearch API key",
-      "description": "Optional Bearer token for direct mode. Leave blank if the API does not require a key.",
+      "description": "Optional Bearer token. Leave blank if the API does not require a key.",
       "sensitive": true,
       "required": false
     }

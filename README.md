@@ -1,19 +1,22 @@
 # agentsearch-mcp
 
-MCP (Model Context Protocol) server that exposes **AgentSearch** web search — plus optional URL extract and JavaScript page rendering (headless browser) — to Cursor, Claude Desktop, and other MCP hosts over **stdio**.
+MCP (Model Context Protocol) server for people running their own [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp)-compatible backend. It exposes web search, page extract, and JavaScript page rendering (headless browser) to Cursor, Claude Desktop, and other MCP hosts over **stdio**.
 
-[AgentSearch](https://agentsearchhq.com) is a web-search API aimed at agents. You can run it against a **local/self-hosted** AgentSearch instance (`direct` mode) or the **Pocket Network agent portal** (`portal` mode).
+`AGENTSEARCH_BASE_URL` is required and points at that API. There is no built-in default host.
 
-- Portal search endpoint (reference):  
-  `POST https://agent.pocket.network/v1/agentsearch-web-search-v1/v1/search`  
-  body: `{ "query": "...", "max_results": 5 }`
-- Direct search: `POST {AGENTSEARCH_BASE_URL}/v1/search` with the same body  
-- Direct extract: `POST {AGENTSEARCH_BASE_URL}/v1/extract`
-- Direct render: `POST {AGENTSEARCH_BASE_URL}/v1/render` (headless Chromium; [OpenAPI spec](https://agentsearchhq.com/specs/render-openapi.json))
+For pay-per-call access with no backend of your own, use Pocket's official MCP server instead:
 
-Pocket explorer: [agentsearch-web-search-v1](https://explorer.pocket.network/service/agentsearch-web-search-v1)
+```bash
+npx -y @pocket-network/agentic-portal-mcp
+```
 
-> **Discovery:** This package is free to list and use. There is no paid promotion channel — discovery comes from MCP Registry / Smithery / Glama listings and real usage.
+That server calls `agentsearch-web-search-v1` and `agentsearch-web-extract-v1` at $0.005/call over x402. Details: https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp
+
+This package calls your API directly:
+
+- Search: `POST {AGENTSEARCH_BASE_URL}/v1/search` with body `{ "query": "...", "max_results": 5 }`
+- Extract: `POST {AGENTSEARCH_BASE_URL}/v1/extract`
+- Render: `POST {AGENTSEARCH_BASE_URL}/v1/render` (headless Chromium; [OpenAPI spec](https://agentsearchhq.com/specs/render-openapi.json))
 
 ---
 
@@ -21,11 +24,9 @@ Pocket explorer: [agentsearch-web-search-v1](https://explorer.pocket.network/ser
 
 | Tool | Args | Description |
 |------|------|-------------|
-| `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–10) | Web search in direct or portal mode. Returns pretty-printed JSON. Use for a query; use extract when you already have a URL. Read-only HTTP. |
-| `agentsearch_extract` | `url` (absolute URL, required), `formats` (string[], optional), `max_chars` (positive integer, optional) | Page extract via `POST /v1/extract`. **Direct mode only** — portal fails before any request. Use when you already have a URL. Read-only HTTP. |
-| `agentsearch_render` | `url` (absolute http(s) URL, required); optional: `formats` (`markdown`\|`text`\|`html`\|`links`, default `["markdown"]`), `max_chars` (1–100000), `screenshot`, `screenshot_format` (`png`\|`jpeg`), `full_page`, `viewport` (`{width 320–1920, height 240–1600}`), `wait_until` (`domcontentloaded`\|`load`\|`networkidle`), `wait_for_selector`, `wait_ms` (0–1500), `block` (`image`\|`media`\|`font`\|`stylesheet`) | Renders a JavaScript-heavy page in headless Chromium via `POST /v1/render` and returns title, status, meta, and the rendered markdown/text/HTML/links (plus optional base64 screenshot). **Direct mode only** — the portal render endpoint isn't live yet, so portal fails before any request. Use when extract returns empty/partial content for an SPA; prefer extract for static pages. Read-only HTTP. |
-
-On portal **HTTP 402**, the search tool returns a clear MCP error that **x402 payment is required** (or switch to `AGENTSEARCH_MODE=direct`). In portal mode, `agentsearch_extract` and `agentsearch_render` do not call the network; they return an MCP error telling you to switch to direct mode or use search.
+| `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–5) | Web search. Returns pretty-printed JSON. Use for a query; use extract when you already have a URL. Read-only HTTP. |
+| `agentsearch_extract` | `url` (absolute URL, required), `formats` (string[], optional), `max_chars` (positive integer, optional) | Page extract via `POST /v1/extract`. Use when you already have a URL. Read-only HTTP. |
+| `agentsearch_render` | `url` (absolute http(s) URL, required); optional: `formats` (`markdown`\|`text`\|`html`\|`links`, default `["markdown"]`), `max_chars` (1–100000), `screenshot`, `screenshot_format` (`png`\|`jpeg`), `full_page`, `viewport` (`{width 320–1920, height 240–1600}`), `wait_until` (`domcontentloaded`\|`load`\|`networkidle`), `wait_for_selector`, `wait_ms` (0–1500), `block` (`image`\|`media`\|`font`\|`stylesheet`) | Renders a JavaScript-heavy page in headless Chromium via `POST /v1/render` and returns title, status, meta, and the rendered markdown/text/HTML/links (plus optional base64 screenshot). Use when extract returns empty/partial content for an SPA; prefer extract for static pages. Read-only HTTP. |
 
 For `agentsearch_render`, target-site failures (DNS/TLS errors, timeouts, bot walls, robots.txt) come back as a normal result whose JSON has a non-null `error` object (`code`, `message`, `retryable`); bad input (400), oversize body (413), rate limits (429) and backend faults (500) are MCP errors. The backend enforces a ~4.2 s render deadline.
 
@@ -34,13 +35,11 @@ For `agentsearch_render`, target-site failures (DNS/TLS errors, timeouts, bot wa
 ## Requirements
 
 - Node.js **20+**
-- An AgentSearch backend for `direct` mode (default `http://127.0.0.1:8000`), **or** portal access for `portal` mode
+- Your own AgentSearch-compatible API. Set `AGENTSEARCH_BASE_URL` to its base URL. The process exits at startup if that variable is missing.
 
 ---
 
-## Install & build
-
-Published package:
+## Install
 
 ```bash
 npx -y @agentsearchhq/agentsearch-mcp
@@ -56,7 +55,7 @@ npm install
 npm run build
 ```
 
-Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `test` → build + `node --test test/*.mjs`, `prepare` → runs build (for publish).
+Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `test` → build + `node --test test/*.mjs`, `prepare` → runs build.
 
 Binary: `agentsearch-mcp` → `dist/index.js`
 
@@ -64,38 +63,18 @@ Binary: `agentsearch-mcp` → `dist/index.js`
 
 ## Environment variables
 
-| Variable | Default | Notes |
-|----------|---------|--------|
-| `AGENTSEARCH_MODE` | `direct` | `direct` \| `portal` |
-| `AGENTSEARCH_BASE_URL` | `http://127.0.0.1:8000` | Direct mode base URL (no trailing slash) |
-| `AGENTSEARCH_API_KEY` | _(empty)_ | Optional `Authorization: Bearer …` for direct; on **401** the client retries once **without** the key |
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `AGENTSEARCH_BASE_URL` | yes | Base URL of your API (no trailing slash). No default. |
+| `AGENTSEARCH_API_KEY` | no | Optional `Authorization: Bearer …`. On **401** the client retries once **without** the key. |
 
 See `.env.example`. Never commit a real `.env`.
 
 ---
 
-## Cursor `mcp.json`
+## Cursor
 
 **Project** (`.cursor/mcp.json`) or **user** (`~/.cursor/mcp.json` / Cursor Settings → MCP):
-
-```json
-{
-  "mcpServers": {
-    "agentsearch": {
-      "command": "node",
-      "args": [
-        "C:/Users/Holla/OneDrive/Desktop/AgentSearch/agentsearch-mcp/dist/index.js"
-      ],
-      "env": {
-        "AGENTSEARCH_MODE": "direct",
-        "AGENTSEARCH_BASE_URL": "http://127.0.0.1:8000"
-      }
-    }
-  }
-}
-```
-
-After `npm install && npm run build`, optionally use the bin:
 
 ```json
 {
@@ -104,22 +83,18 @@ After `npm install && npm run build`, optionally use the bin:
       "command": "npx",
       "args": ["-y", "@agentsearchhq/agentsearch-mcp"],
       "env": {
-        "AGENTSEARCH_MODE": "direct",
-        "AGENTSEARCH_BASE_URL": "http://127.0.0.1:8000"
+        "AGENTSEARCH_BASE_URL": "https://your-agentsearch-host.example"
       }
     }
   }
 }
 ```
 
-Use `npx -y @agentsearchhq/agentsearch-mcp` (or `npm i @agentsearchhq/agentsearch-mcp`) once the package is on npm. The local path form is for a checkout of this repo.
-
-Optional API key (direct only):
+Optional API key:
 
 ```json
 "env": {
-  "AGENTSEARCH_MODE": "direct",
-  "AGENTSEARCH_BASE_URL": "http://127.0.0.1:8000",
+  "AGENTSEARCH_BASE_URL": "https://your-agentsearch-host.example",
   "AGENTSEARCH_API_KEY": "your-key-here"
 }
 ```
@@ -137,13 +112,10 @@ Edit Claude Desktop config (`claude_desktop_config.json`):
 {
   "mcpServers": {
     "agentsearch": {
-      "command": "node",
-      "args": [
-        "C:/Users/Holla/OneDrive/Desktop/AgentSearch/agentsearch-mcp/dist/index.js"
-      ],
+      "command": "npx",
+      "args": ["-y", "@agentsearchhq/agentsearch-mcp"],
       "env": {
-        "AGENTSEARCH_MODE": "direct",
-        "AGENTSEARCH_BASE_URL": "http://127.0.0.1:8000"
+        "AGENTSEARCH_BASE_URL": "https://your-agentsearch-host.example"
       }
     }
   }
@@ -154,58 +126,15 @@ Restart Claude Desktop after saving.
 
 ---
 
-## Local run (smoke)
+## Local run
 
 ```bash
 npm run build
-# MCP hosts spawn the process; for a quick boot check:
-node dist/index.js
-# (process waits on stdin — Ctrl+C to stop)
+AGENTSEARCH_BASE_URL=https://your-agentsearch-host.example node dist/index.js
+# process waits on stdin — Ctrl+C to stop
 ```
 
----
-
-## Publish (high level)
-
-No paid promo — list the package so tools can discover it via registries and usage.
-
-### npm
-
-1. `npm login` (the `@agentsearchhq` org must allow the publisher)
-2. Confirm `name` is `@agentsearchhq/agentsearch-mcp` and `version` matches `manifest.json` / `server.json` (currently `1.1.0`) in `package.json` (`publishConfig.access` is `public`)
-3. `npm publish` (ensure `prepare`/`build` succeed; no secrets in the tarball)
-
-### MCP Registry
-
-1. Ensure `server.json` matches your npm package + stdio transport
-2. Follow the [MCP Registry](https://github.com/modelcontextprotocol/registry) publish flow (authenticate publisher, submit server metadata)
-3. Verify the listing resolves `@agentsearchhq/agentsearch-mcp` / stdio
-
-### Smithery
-
-Publish with the durable helper (preferred):
-
-```bash
-npm run smithery:publish
-```
-
-That runs `scripts/publish-smithery.mjs`, which ensures `agentsearch-mcp.mcpb` exists (`npm run mcpb:pack` if missing), idempotently patches the global Smithery CLI so the deploy payload always includes a tool `inputSchema` object when the MCPB omitted it, then runs `smithery mcp publish ./agentsearch-mcp.mcpb -n agentsearchhq/agentsearch-mcp`.
-
-**MCPB note:** `manifest.json` must **omit** tool `inputSchema` — `mcpb validate` rejects it. The publish helper patches the CLI payload side instead.
-
-Manual equivalent (after CLI is patched):
-
-```bash
-npm run mcpb:pack
-smithery mcp publish ./agentsearch-mcp.mcpb -n agentsearchhq/agentsearch-mcp
-```
-
-`npm run mcpb:pack` compiles TypeScript to `dist/index.js`, installs production dependencies, then writes `agentsearch-mcp.mcpb`. Check the manifest with `npm run mcpb:validate`. `manifest.json` (MCPB 0.3) launches `node ${__dirname}/dist/index.js` and maps optional `AGENTSEARCH_MODE` (default `direct`), `AGENTSEARCH_BASE_URL` (default `http://127.0.0.1:8000`), and sensitive `AGENTSEARCH_API_KEY`. `smithery.yaml` remains as start-command metadata. Dry-run patch detection only: `node scripts/publish-smithery.mjs --dry-patch`.
-
-### Glama
-
-1. Submit the GitHub (or npm) package to [Glama](https://glama.ai) MCP directory
-2. Link README + tools list; keep env docs in sync
+If `AGENTSEARCH_BASE_URL` is unset, the process prints an error and exits.
 
 ---
 

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../dist/server.js";
-import { renderPage, RENDER_PORTAL_UNSUPPORTED_MESSAGE } from "../dist/client.js";
+import { clampMaxResults, loadConfig, MISSING_BASE_URL_MESSAGE } from "../dist/client.js";
 import { SERVER_VERSION } from "../dist/version.js";
 
 const ENV_KEYS = ["AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY"];
@@ -81,18 +81,48 @@ test("direct mode POSTs {BASE}/v1/render with only provided fields", async () =>
   assert.equal(JSON.parse(res.content[0].text).title, "Example");
 });
 
-test("portal mode returns an MCP error without any network call", async () => {
-  process.env.AGENTSEARCH_MODE = "portal";
-  mockFetch(() => assert.fail("fetch must not be called in portal mode"));
+test("missing AGENTSEARCH_BASE_URL fails without a network call", async () => {
+  mockFetch(() => assert.fail("fetch must not be called when the base URL is missing"));
   const client = await connect();
   const res = await client.callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
   assert.equal(res.isError, true);
-  assert.equal(res.content[0].text, RENDER_PORTAL_UNSUPPORTED_MESSAGE);
+  assert.equal(res.content[0].text, MISSING_BASE_URL_MESSAGE);
   assert.equal(calls.length, 0);
-  await assert.rejects(renderPage({ mode: "portal", baseUrl: "http://x" }, { url: "https://example.com/" }));
+  assert.throws(loadConfig, { message: MISSING_BASE_URL_MESSAGE });
+  process.env.AGENTSEARCH_BASE_URL = "   ";
+  assert.throws(loadConfig, { message: MISSING_BASE_URL_MESSAGE });
+  process.env.AGENTSEARCH_MODE = "portal";
+  assert.throws(loadConfig, { message: MISSING_BASE_URL_MESSAGE });
+});
+
+test("web search clamps max_results to 1-5 and defaults to 5", async () => {
+  process.env.AGENTSEARCH_BASE_URL = "http://search.test:9000/";
+  mockFetch(() => ({ body: { results: [] } }));
+  const client = await connect();
+  const { tools } = await client.listTools();
+  const search = tools.find((t) => t.name === "agentsearch_web_search");
+  assert.match(search.description, /1–5/);
+  assert.match(search.inputSchema.properties.max_results.description, /1–5/);
+  assert.equal(clampMaxResults(undefined), 5);
+  assert.equal(clampMaxResults(10), 5);
+  assert.equal(clampMaxResults(0), 1);
+  for (const [args, expected] of [
+    [{ query: "agents", max_results: 10 }, 5],
+    [{ query: "agents" }, 5],
+    [{ query: "agents", max_results: 0 }, 1],
+    [{ query: "agents", max_results: 3 }, 3],
+  ]) {
+    calls.length = 0;
+    const res = await client.callTool({ name: "agentsearch_web_search", arguments: args });
+    assert.equal(res.isError, undefined);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "http://search.test:9000/v1/search");
+    assert.equal(calls[0].body.max_results, expected);
+  }
 });
 
 test("sends Bearer key and retries once without it on 401", async () => {
+  process.env.AGENTSEARCH_BASE_URL = "http://render.test:9000";
   process.env.AGENTSEARCH_API_KEY = "test-key";
   mockFetch((n) => (n === 1 ? { status: 401, body: "nope" } : { body: { error: null } }));
   const client = await connect();
@@ -104,6 +134,7 @@ test("sends Bearer key and retries once without it on 401", async () => {
 });
 
 test("HTTP 400 becomes an MCP error with status", async () => {
+  process.env.AGENTSEARCH_BASE_URL = "http://render.test:9000";
   mockFetch(() => ({ status: 400, body: { error: { code: "URL_NOT_ALLOWED", message: "no", retryable: false } } }));
   const client = await connect();
   const res = await client.callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
@@ -119,15 +150,37 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.1.0 across package metadata", () => {
+test("versions are consistent at 1.1.1 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
+  const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.1.0");
+  assert.equal(pkg.version, "1.1.1");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);
   assert.equal(serverJson.packages[0].version, pkg.version);
+  assert.equal(serverJson.title, "AgentSearch (agentsearchhq.com)");
+  assert.equal(
+    serverJson.websiteUrl,
+    "https://agentsearchhq.com/?utm_source=mcp-registry&utm_medium=directory&utm_campaign=listing"
+  );
+  assert.ok(serverJson.description.length <= 100);
+  assert.equal(serverJson.packages[0].environmentVariables.some((v) => v.name === "AGENTSEARCH_MODE"), false);
+  assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_BASE_URL").isRequired, true);
+  assert.equal(manifest.user_config.AGENTSEARCH_MODE, undefined);
+  assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.required, true);
+  assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.default, undefined);
   assert.ok(manifest.tools.some((t) => t.name === "agentsearch_render"));
+
+  const published = ["README.md", "manifest.json", "server.json", "smithery.yaml", ".env.example", "package.json"];
+  for (const file of published) {
+    const body = text(file);
+    for (const needle of ["Users/", "Holla", "OneDrive", "127.0.0.1", "AGENTSEARCH_MODE"]) {
+      assert.equal(body.includes(needle), false, `${file} contains ${needle}`);
+    }
+    const withoutProductName = body.replaceAll("Claude Desktop", "");
+    assert.equal(withoutProductName.includes("Desktop"), false, `${file} contains a Desktop path`);
+  }
 });

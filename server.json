@@ -1,36 +1,32 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.agentsearchhq-coder/agentsearch-mcp",
-  "description": "AgentSearch web search, page extract and JS rendering (headless Chromium) via MCP stdio.",
+  "title": "AgentSearch (agentsearchhq.com)",
+  "description": "AgentSearch web search, page extract and JS page render for agents. Self-hosted API via stdio.",
+  "websiteUrl": "https://agentsearchhq.com/?utm_source=mcp-registry&utm_medium=directory&utm_campaign=listing",
   "repository": {
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.1.0",
+  "version": "1.1.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "name": "AGENTSEARCH_MODE",
-          "description": "direct | portal (default direct)",
-          "isRequired": false,
-          "format": "string"
-        },
-        {
           "name": "AGENTSEARCH_BASE_URL",
-          "description": "Base URL for direct mode (default http://127.0.0.1:8000)",
-          "isRequired": false,
+          "description": "Base URL of your AgentSearch API deployment (no trailing slash)",
+          "isRequired": true,
           "format": "string"
         },
         {
           "name": "AGENTSEARCH_API_KEY",
-          "description": "Optional Bearer token for direct mode",
+          "description": "Optional Bearer token for your AgentSearch API",
           "isRequired": false,
           "isSecret": true,
           "format": "string"

@@ -17,11 +17,12 @@ async function main(): Promise<void> {
 
   // stdout is reserved for MCP JSON-RPC; log to stderr only
   console.error(
-    `agentsearch-mcp listening on stdio (mode=${cfg.mode}, base=${cfg.baseUrl})`
+    `agentsearch-mcp listening on stdio (base=${cfg.baseUrl})`
   );
 }
 
 main().catch((err) => {
-  console.error("agentsearch-mcp failed to start:", err);
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(`agentsearch-mcp failed to start: ${message}`);
   process.exit(1);
 });

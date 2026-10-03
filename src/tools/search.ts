@@ -35,21 +35,21 @@ export function errorContent(err: unknown): {
 }
 
 const WEB_SEARCH_DESCRIPTION = [
-  "Search the web through AgentSearch and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
+  "Search the web through your self-hosted AgentSearch API and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
   "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead (or agentsearch_render for JavaScript-heavy pages).",
-  "Works in AGENTSEARCH_MODE=direct (default; POST {AGENTSEARCH_BASE_URL}/v1/search) or portal (Pocket).",
+  "Requires AGENTSEARCH_BASE_URL (there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/search.",
   "Read-only HTTP POST: not destructive, but it uses the network and can hit backend rate limits.",
-  "Direct mode sends a Bearer token from AGENTSEARCH_API_KEY when that variable is set, and retries once without the key on HTTP 401; portal ignores the key, and HTTP 402 is an MCP error that x402 payment is required (or switch to direct).",
-  "Other HTTP failures are MCP errors with the status and a truncated body.",
-  "Integers for max_results outside 1–10 are clamped (default 5), not rejected.",
+  "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key.",
+  "HTTP failures are MCP errors with the status and a truncated body.",
+  "Integers for max_results outside 1–5 are clamped (default 5), not rejected. The backend allows at most 5.",
 ].join(" ");
 
 const EXTRACT_DESCRIPTION = [
-  "Extract the content of one absolute URL through AgentSearch and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
+  "Extract the content of one absolute URL through your self-hosted AgentSearch API and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
   "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search instead; if the page is a JavaScript app whose content only appears after scripts run, use agentsearch_render.",
-  "Direct mode only: AGENTSEARCH_MODE=portal fails immediately with an MCP error telling you to switch to direct or call search, and no HTTP request is sent; direct mode POSTs {AGENTSEARCH_BASE_URL}/v1/extract.",
+  "Requires AGENTSEARCH_BASE_URL (there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/extract.",
   "Read-only HTTP POST: not destructive, but it fetches through AgentSearch and can hit network or backend rate limits.",
-  "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key; HTTP 402 is an MCP error that x402 payment is required (or switch to direct), and any other HTTP failure includes the status and a truncated body.",
+  "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key; any HTTP failure includes the status and a truncated body.",
   'formats, when provided, is forwarded unchanged (for example "markdown" or "text") and is not limited to an enum; max_chars, when set, is a positive integer cap sent to the API rather than applied by this server.',
 ].join(" ");
 
@@ -68,7 +68,7 @@ export function registerSearchTools(server: McpServer): void {
           .number()
           .int()
           .optional()
-          .describe("How many hits to request (1–10, default 5)."),
+          .describe("How many hits to request (1–5, default 5). Values outside that range are clamped."),
       },
     },
     async ({ query, max_results }) => {
