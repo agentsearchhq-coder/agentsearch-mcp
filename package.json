@@ -1,11 +1,11 @@
 {
   "name": "@agentsearchhq/agentsearch-mcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "publishConfig": {
     "access": "public"
   },
-  "description": "MCP server for AgentSearch web search, page extract and JavaScript rendering (headless browser) — direct or Pocket portal",
+  "description": "MCP server for a self-hosted AgentSearch API: web search, page extract, and JavaScript page rendering",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -38,7 +38,6 @@
     "model-context-protocol",
     "agentsearch",
     "web-search",
-    "pocket-network",
     "render",
     "headless-browser",
     "javascript-rendering"

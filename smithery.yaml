@@ -1,28 +1,23 @@
-# Smithery.ai publish metadata for agentsearch-mcp
+# Smithery start command for a self-hosted AgentSearch-compatible API.
 startCommand:
   type: stdio
   configSchema:
     type: object
+    required:
+      - agentsearchBaseUrl
     properties:
-      agentsearchMode:
-        type: string
-        enum: [direct, portal]
-        default: direct
-        description: direct local API or Pocket portal
       agentsearchBaseUrl:
         type: string
-        default: http://127.0.0.1:8000
-        description: Base URL for direct mode
+        description: Base URL of your self-hosted AgentSearch API (no trailing slash). Required.
       agentsearchApiKey:
         type: string
-        description: Optional Bearer token for direct mode
+        description: Optional Bearer token for your AgentSearch API
   commandFunction: |-
     (config) => ({
       command: 'node',
       args: ['dist/index.js'],
       env: {
-        AGENTSEARCH_MODE: config.agentsearchMode ?? 'direct',
-        AGENTSEARCH_BASE_URL: config.agentsearchBaseUrl ?? 'http://127.0.0.1:8000',
+        AGENTSEARCH_BASE_URL: config.agentsearchBaseUrl,
         ...(config.agentsearchApiKey
           ? { AGENTSEARCH_API_KEY: config.agentsearchApiKey }
           : {})
