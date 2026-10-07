@@ -1,6 +1,6 @@
 {
   "name": "@agentsearchhq/agentsearch-mcp",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "publishConfig": {
     "access": "public"
@@ -40,7 +40,9 @@
     "web-search",
     "render",
     "headless-browser",
-    "javascript-rendering"
+    "javascript-rendering",
+    "reviews",
+    "service-status"
   ],
   "license": "MIT",
   "dependencies": {
