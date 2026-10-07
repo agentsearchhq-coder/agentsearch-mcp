@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * AgentSearch MCP server — stdio transport.
- * Tools: agentsearch_web_search, agentsearch_extract, agentsearch_render
+ * Tools: agentsearch_web_search, agentsearch_extract, agentsearch_render,
+ *        agentsearch_review_lookup, agentsearch_review_submit
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
