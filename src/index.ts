@@ -6,19 +6,22 @@
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig } from "./client.js";
+import { hasBaseUrl } from "./client.js";
+import { loadReviewsConfig } from "./reviews-client.js";
 import { createServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const cfg = loadConfig();
   const server = createServer();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
   // stdout is reserved for MCP JSON-RPC; log to stderr only
+  const base = hasBaseUrl()
+    ? `base=${process.env.AGENTSEARCH_BASE_URL!.trim().replace(/\/+$/, "")}`
+    : "AGENTSEARCH_BASE_URL not set: search/extract/render will return a setup error";
   console.error(
-    `agentsearch-mcp listening on stdio (base=${cfg.baseUrl})`
+    `agentsearch-mcp listening on stdio (${base}; reviews=${loadReviewsConfig().baseUrl})`
   );
 }
 

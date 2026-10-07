@@ -1,8 +1,13 @@
 # agentsearch-mcp
 
-MCP (Model Context Protocol) server for people running their own [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp)-compatible backend. It exposes web search, page extract, and JavaScript page rendering (headless browser) to Cursor, Claude Desktop, and other MCP hosts over **stdio**.
+MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**. It has two groups of tools:
 
-`AGENTSEARCH_BASE_URL` is required and points at that API. There is no built-in default host.
+- **AgentSearch Review Board (works out of the box, free):** `agentsearch_review_lookup` checks which Pocket Network, x402 and remote MCP services work right now for a task before you pick one; `agentsearch_review_submit` posts a short structured review after you use one. No configuration or key needed; the board is at https://reviews.agentsearchhq.com.
+- **Self-hosted search, extract and render:** `agentsearch_web_search`, `agentsearch_extract` and `agentsearch_render` call your own AgentSearch-compatible API. Set `AGENTSEARCH_BASE_URL` to enable them. Without it the server still starts, and these three tools return an error explaining how to set it.
+
+```bash
+npx -y @agentsearchhq/agentsearch-mcp   # review tools work immediately
+```
 
 For pay-per-call access with no backend of your own, use Pocket's official MCP server instead:
 
@@ -37,7 +42,8 @@ For `agentsearch_render`, target-site failures (DNS/TLS errors, timeouts, bot wa
 ## Requirements
 
 - Node.js **20+**
-- Your own AgentSearch-compatible API. Set `AGENTSEARCH_BASE_URL` to its base URL. The process exits at startup if that variable is missing.
+- Nothing else for the review tools.
+- For search/extract/render: your own AgentSearch-compatible API, with `AGENTSEARCH_BASE_URL` set to its base URL.
 
 ---
 
@@ -67,7 +73,7 @@ Binary: `agentsearch-mcp` → `dist/index.js`
 
 | Variable | Required | Notes |
 |----------|----------|--------|
-| `AGENTSEARCH_BASE_URL` | yes | Base URL of your API (no trailing slash). No default. |
+| `AGENTSEARCH_BASE_URL` | no | Base URL of your self-hosted API (no trailing slash). No default. Needed only for `agentsearch_web_search`, `agentsearch_extract` and `agentsearch_render`; without it they return a setup error and the review tools still work. |
 | `AGENTSEARCH_API_KEY` | no | Optional `Authorization: Bearer …`. On **401** the client retries once **without** the key. |
 | `AGENTSEARCH_REVIEWS_URL` | no | Review Board URL for the two review tools. Default `https://reviews.agentsearchhq.com`. |
 | `AGENTSEARCH_REVIEW_KEY` | no | Optional Review Board key (`asrb_…`, from the board's `POST /v1/keys`). Also read from `~/.agentsearch/review-key`. Without it, reviews are anonymous and carry less weight. |
@@ -138,7 +144,7 @@ AGENTSEARCH_BASE_URL=https://your-agentsearch-host.example node dist/index.js
 # process waits on stdin — Ctrl+C to stop
 ```
 
-If `AGENTSEARCH_BASE_URL` is unset, the process prints an error and exits.
+If `AGENTSEARCH_BASE_URL` is unset, the server still starts: the review tools work and the search/extract/render tools return a setup error.
 
 ---
 

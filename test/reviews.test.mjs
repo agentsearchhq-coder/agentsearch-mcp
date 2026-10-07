@@ -116,3 +116,27 @@ test("submit surfaces board errors (e.g. 429) as MCP errors and validates input 
   assert.equal(bad.isError, true);
   assert.equal(calls.length, 1);
 });
+
+test("the stdio server starts without AGENTSEARCH_BASE_URL and lists all five tools", async () => {
+  const { spawn } = await import("node:child_process");
+  const env = { ...process.env };
+  delete env.AGENTSEARCH_BASE_URL;
+  delete env.AGENTSEARCH_API_KEY;
+  const child = spawn(process.execPath, [new URL("../dist/index.js", import.meta.url).pathname], { env, stdio: ["pipe", "pipe", "pipe"] });
+  let out = "";
+  let stderr = "";
+  child.stdout.on("data", (d) => (out += d));
+  child.stderr.on("data", (d) => (stderr += d));
+  const send = (m) => child.stdin.write(JSON.stringify(m) + "\n");
+  send({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } } });
+  send({ jsonrpc: "2.0", method: "notifications/initialized" });
+  send({ jsonrpc: "2.0", id: 2, method: "tools/list" });
+  const deadline = Date.now() + 10000;
+  while (!out.includes('"id":2') && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  const exited = child.exitCode;
+  child.kill();
+  assert.equal(exited, null, `server exited early: ${stderr}`);
+  const list = out.split("\n").filter(Boolean).map((l) => JSON.parse(l)).find((m) => m.id === 2);
+  assert.deepEqual(list.result.tools.map((t) => t.name).sort(), ["agentsearch_extract", "agentsearch_render", "agentsearch_review_lookup", "agentsearch_review_submit", "agentsearch_web_search"]);
+  assert.match(stderr, /AGENTSEARCH_BASE_URL not set/);
+});

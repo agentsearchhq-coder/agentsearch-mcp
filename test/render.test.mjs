@@ -81,12 +81,18 @@ test("direct mode POSTs {BASE}/v1/render with only provided fields", async () =>
   assert.equal(JSON.parse(res.content[0].text).title, "Example");
 });
 
-test("missing AGENTSEARCH_BASE_URL fails without a network call", async () => {
+test("missing AGENTSEARCH_BASE_URL: search/extract/render return a setup error without a network call", async () => {
   mockFetch(() => assert.fail("fetch must not be called when the base URL is missing"));
   const client = await connect();
   const res = await client.callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
   assert.equal(res.isError, true);
   assert.equal(res.content[0].text, MISSING_BASE_URL_MESSAGE);
+  assert.match(MISSING_BASE_URL_MESSAGE, /agentsearch_review_lookup/);
+  for (const [name, args] of [["agentsearch_web_search", { query: "x" }], ["agentsearch_extract", { url: "https://example.com/" }]]) {
+    const r = await client.callTool({ name, arguments: args });
+    assert.equal(r.isError, true);
+    assert.equal(r.content[0].text, MISSING_BASE_URL_MESSAGE);
+  }
   assert.equal(calls.length, 0);
   assert.throws(loadConfig, { message: MISSING_BASE_URL_MESSAGE });
   process.env.AGENTSEARCH_BASE_URL = "   ";
@@ -168,9 +174,9 @@ test("versions are consistent at 1.2.0 across package metadata", () => {
   );
   assert.ok(serverJson.description.length <= 100);
   assert.equal(serverJson.packages[0].environmentVariables.some((v) => v.name === "AGENTSEARCH_MODE"), false);
-  assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_BASE_URL").isRequired, true);
+  assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_BASE_URL").isRequired, false);
   assert.equal(manifest.user_config.AGENTSEARCH_MODE, undefined);
-  assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.required, true);
+  assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.required, false);
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.default, undefined);
   assert.ok(manifest.tools.some((t) => t.name === "agentsearch_render"));
 
