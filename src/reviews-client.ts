@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { AgentSearchHttpError } from "./client.js";
+import { AgentSearchHttpError, isSecureOrLocalUrl, requestTimeoutMs } from "./client.js";
 import { SERVER_NAME, SERVER_VERSION } from "./version.js";
 
 export const DEFAULT_REVIEWS_URL = "https://reviews.agentsearchhq.com";
@@ -29,6 +29,8 @@ export function loadReviewsConfig(): ReviewsConfig {
     }
   }
   if (key && !/^asrb_[A-Za-z0-9_-]{20,80}$/.test(key)) key = undefined;
+  // Never send the review key over plain HTTP (except to localhost).
+  if (key && !isSecureOrLocalUrl(baseUrl)) key = undefined;
   return { baseUrl, key };
 }
 
@@ -39,7 +41,8 @@ async function call(cfg: ReviewsConfig, path: string, init?: RequestInit, useKey
   };
   if (init?.body) headers["content-type"] = "application/json";
   if (useKey && cfg.key) headers.authorization = `Bearer ${cfg.key}`;
-  const res = await fetch(`${cfg.baseUrl}${path}`, { ...init, headers });
+  if (useKey && cfg.key && !isSecureOrLocalUrl(cfg.baseUrl)) delete headers.authorization;
+  const res = await fetch(`${cfg.baseUrl}${path}`, { ...init, headers, signal: AbortSignal.timeout(requestTimeoutMs()) });
   const text = await res.text();
   if (!res.ok) throw new AgentSearchHttpError(res.status, text || res.statusText);
   try {
