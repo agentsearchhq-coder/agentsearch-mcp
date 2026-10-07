@@ -1,11 +1,11 @@
 {
   "name": "@agentsearchhq/agentsearch-mcp",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "publishConfig": {
     "access": "public"
   },
-  "description": "MCP server for a self-hosted AgentSearch API: web search, page extract, and JavaScript page rendering",
+  "description": "MCP server: check which agent services work right now on the free AgentSearch Review Board, plus web search, page extract and JS rendering via a self-hosted AgentSearch API",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -40,7 +40,9 @@
     "web-search",
     "render",
     "headless-browser",
-    "javascript-rendering"
+    "javascript-rendering",
+    "reviews",
+    "service-status"
   ],
   "license": "MIT",
   "dependencies": {

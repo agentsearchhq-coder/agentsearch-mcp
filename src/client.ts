@@ -39,7 +39,12 @@ export interface RenderRequest {
 }
 
 export const MISSING_BASE_URL_MESSAGE =
-  "AGENTSEARCH_BASE_URL is required. Set it to the base URL of your self-hosted AgentSearch-compatible API (no trailing slash). This package does not call the Pocket portal.";
+  "AGENTSEARCH_BASE_URL is not set, so agentsearch_web_search, agentsearch_extract and agentsearch_render are unavailable. Set AGENTSEARCH_BASE_URL to the base URL of your self-hosted AgentSearch-compatible API (no trailing slash) in this MCP server's env and restart it. The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without it.";
+
+/** True when AGENTSEARCH_BASE_URL is set (non-blank). */
+export function hasBaseUrl(): boolean {
+  return Boolean(process.env.AGENTSEARCH_BASE_URL?.trim());
+}
 
 export class AgentSearchHttpError extends Error {
   readonly status: number;
