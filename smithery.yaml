@@ -1,14 +1,12 @@
-# Smithery start command for a self-hosted AgentSearch-compatible API.
+# Smithery start command. Review tools work with no config; set the base URL to enable search/extract/render.
 startCommand:
   type: stdio
   configSchema:
     type: object
-    required:
-      - agentsearchBaseUrl
     properties:
       agentsearchBaseUrl:
         type: string
-        description: Base URL of your self-hosted AgentSearch API (no trailing slash). Required.
+        description: Optional base URL of your self-hosted AgentSearch API (no trailing slash). Needed only for search/extract/render; the review tools work without it.
       agentsearchApiKey:
         type: string
         description: Optional Bearer token for your AgentSearch API
@@ -17,7 +15,9 @@ startCommand:
       command: 'node',
       args: ['dist/index.js'],
       env: {
-        AGENTSEARCH_BASE_URL: config.agentsearchBaseUrl,
+        ...(config.agentsearchBaseUrl
+          ? { AGENTSEARCH_BASE_URL: config.agentsearchBaseUrl }
+          : {}),
         ...(config.agentsearchApiKey
           ? { AGENTSEARCH_API_KEY: config.agentsearchApiKey }
           : {})

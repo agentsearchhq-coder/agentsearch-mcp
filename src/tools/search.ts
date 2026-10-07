@@ -37,7 +37,7 @@ export function errorContent(err: unknown): {
 const WEB_SEARCH_DESCRIPTION = [
   "Search the web through your self-hosted AgentSearch API and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
   "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead (or agentsearch_render for JavaScript-heavy pages).",
-  "Requires AGENTSEARCH_BASE_URL (there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/search.",
+  "Needs AGENTSEARCH_BASE_URL (your self-hosted API; there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/search. If the variable is missing, the tool makes no network call and returns an error explaining how to set it.",
   "Read-only HTTP POST: not destructive, but it uses the network and can hit backend rate limits.",
   "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key.",
   "HTTP failures are MCP errors with the status and a truncated body.",
@@ -47,7 +47,7 @@ const WEB_SEARCH_DESCRIPTION = [
 const EXTRACT_DESCRIPTION = [
   "Extract the content of one absolute URL through your self-hosted AgentSearch API and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
   "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search instead; if the page is a JavaScript app whose content only appears after scripts run, use agentsearch_render.",
-  "Requires AGENTSEARCH_BASE_URL (there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/extract.",
+  "Needs AGENTSEARCH_BASE_URL (your self-hosted API; there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/extract. If the variable is missing, the tool makes no network call and returns an error explaining how to set it.",
   "Read-only HTTP POST: not destructive, but it fetches through AgentSearch and can hit network or backend rate limits.",
   "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key; any HTTP failure includes the status and a truncated body.",
   'formats, when provided, is forwarded unchanged (for example "markdown" or "text") and is not limited to an enum; max_chars, when set, is a positive integer cap sent to the API rather than applied by this server.',
