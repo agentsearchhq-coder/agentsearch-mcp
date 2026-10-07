@@ -60,7 +60,7 @@ test("lists agentsearch_render alongside existing tools, read-only", async () =>
 });
 
 test("direct mode POSTs {BASE}/v1/render with only provided fields", async () => {
-  process.env.AGENTSEARCH_BASE_URL = "http://render.test:9000/";
+  process.env.AGENTSEARCH_BASE_URL = "https://render.test:9000/";
   mockFetch(() => ({ body: { request_id: "r1", url: "https://example.com/", title: "Example", meta: {}, error: null, markdown: "# Hi" } }));
   const client = await connect();
   const res = await client.callTool({
@@ -69,7 +69,7 @@ test("direct mode POSTs {BASE}/v1/render with only provided fields", async () =>
   });
   assert.equal(res.isError, undefined);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, "http://render.test:9000/v1/render");
+  assert.equal(calls[0].url, "https://render.test:9000/v1/render");
   assert.equal(calls[0].init.method, "POST");
   assert.deepEqual(calls[0].body, {
     url: "https://example.com/",
@@ -102,7 +102,7 @@ test("missing AGENTSEARCH_BASE_URL: search/extract/render return a setup error w
 });
 
 test("web search clamps max_results to 1-5 and defaults to 5", async () => {
-  process.env.AGENTSEARCH_BASE_URL = "http://search.test:9000/";
+  process.env.AGENTSEARCH_BASE_URL = "https://search.test:9000/";
   mockFetch(() => ({ body: { results: [] } }));
   const client = await connect();
   const { tools } = await client.listTools();
@@ -122,13 +122,13 @@ test("web search clamps max_results to 1-5 and defaults to 5", async () => {
     const res = await client.callTool({ name: "agentsearch_web_search", arguments: args });
     assert.equal(res.isError, undefined);
     assert.equal(calls.length, 1);
-    assert.equal(calls[0].url, "http://search.test:9000/v1/search");
+    assert.equal(calls[0].url, "https://search.test:9000/v1/search");
     assert.equal(calls[0].body.max_results, expected);
   }
 });
 
 test("sends Bearer key and retries once without it on 401", async () => {
-  process.env.AGENTSEARCH_BASE_URL = "http://render.test:9000";
+  process.env.AGENTSEARCH_BASE_URL = "https://render.test:9000";
   process.env.AGENTSEARCH_API_KEY = "test-key";
   mockFetch((n) => (n === 1 ? { status: 401, body: "nope" } : { body: { error: null } }));
   const client = await connect();
@@ -140,7 +140,7 @@ test("sends Bearer key and retries once without it on 401", async () => {
 });
 
 test("HTTP 400 becomes an MCP error with status", async () => {
-  process.env.AGENTSEARCH_BASE_URL = "http://render.test:9000";
+  process.env.AGENTSEARCH_BASE_URL = "https://render.test:9000";
   mockFetch(() => ({ status: 400, body: { error: { code: "URL_NOT_ALLOWED", message: "no", retryable: false } } }));
   const client = await connect();
   const res = await client.callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
