@@ -1,20 +1,35 @@
-# Smithery start command. Review tools work with no config; set the base URL to enable search/extract/render.
+# Smithery start command. Review tools work with no config. Search/extract/render pay $0.005 per call
+# in USDC on Base via the Pocket Network Agentic Portal (x402) when a wallet key is set, or use your
+# self-hosted API when a base URL is set.
 startCommand:
   type: stdio
   configSchema:
     type: object
     properties:
+      walletPrivateKey:
+        type: string
+        description: Optional 64-hex private key of a NEW wallet holding a little USDC on Base. Pays $0.005 per search/extract/render call via x402. Never logged.
+      maxTotalAtomic:
+        type: string
+        default: "1000000"
+        description: Session spend cap in USDC atomic units (1000000 = $1.00). Per-call payments are always capped at 5000 ($0.005).
       agentsearchBaseUrl:
         type: string
-        description: Optional base URL of your self-hosted AgentSearch API (no trailing slash). Needed only for search/extract/render; the review tools work without it.
+        description: Optional base URL of your self-hosted AgentSearch API (no trailing slash). When set, it is used instead of the paid portal.
       agentsearchApiKey:
         type: string
-        description: Optional Bearer token for your AgentSearch API
+        description: Optional Bearer token for your self-hosted AgentSearch API
   commandFunction: |-
     (config) => ({
       command: 'node',
       args: ['dist/index.js'],
       env: {
+        ...(config.walletPrivateKey
+          ? { AGENTSEARCH_WALLET_PRIVATE_KEY: config.walletPrivateKey }
+          : {}),
+        ...(config.maxTotalAtomic
+          ? { AGENTSEARCH_MAX_TOTAL_ATOMIC: config.maxTotalAtomic }
+          : {}),
         ...(config.agentsearchBaseUrl
           ? { AGENTSEARCH_BASE_URL: config.agentsearchBaseUrl }
           : {}),

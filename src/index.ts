@@ -6,7 +6,7 @@
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { hasBaseUrl } from "./client.js";
+import { backendMode } from "./backend.js";
 import { loadReviewsConfig } from "./reviews-client.js";
 import { createServer } from "./server.js";
 
@@ -17,9 +17,14 @@ async function main(): Promise<void> {
   await server.connect(transport);
 
   // stdout is reserved for MCP JSON-RPC; log to stderr only
-  const base = hasBaseUrl()
-    ? `base=${process.env.AGENTSEARCH_BASE_URL!.trim().replace(/\/+$/, "")}`
-    : "AGENTSEARCH_BASE_URL not set: search/extract/render will return a setup error";
+  // Never log the wallet key; only the mode.
+  const mode = backendMode();
+  const base =
+    mode === "self-hosted"
+      ? `base=${process.env.AGENTSEARCH_BASE_URL!.trim().replace(/\/+$/, "")}`
+      : mode === "pocket"
+        ? "search/extract/render: pay-per-call via Pocket portal (x402, USDC on Base)"
+        : "no wallet key or AGENTSEARCH_BASE_URL: search/extract/render will return setup instructions";
   console.error(
     `agentsearch-mcp listening on stdio (${base}; reviews=${loadReviewsConfig().baseUrl})`
   );

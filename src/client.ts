@@ -58,11 +58,44 @@ export class AgentSearchHttpError extends Error {
   }
 }
 
+/** Default per-request timeout; override with AGENTSEARCH_TIMEOUT_MS (1000–300000). */
+export const DEFAULT_TIMEOUT_MS = 30_000;
+export function requestTimeoutMs(): number {
+  const n = Number(process.env.AGENTSEARCH_TIMEOUT_MS);
+  return Number.isFinite(n) && n >= 1000 && n <= 300_000 ? Math.trunc(n) : DEFAULT_TIMEOUT_MS;
+}
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+/** True for https URLs, or http URLs that point at this machine (localhost / loopback). */
+export function isSecureOrLocalUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol === "https:") return true;
+  if (u.protocol !== "http:") return false;
+  const host = u.hostname.toLowerCase();
+  return LOOPBACK_HOSTS.has(host) || host.endsWith(".localhost") || /^127\.\d+\.\d+\.\d+$/.test(host);
+}
+
+/** Opt-in escape hatch for trusted private networks (keys are then sent over plain HTTP). */
+function insecureHttpAllowed(): boolean {
+  return /^(1|true|yes)$/i.test(process.env.AGENTSEARCH_ALLOW_INSECURE_HTTP?.trim() ?? "");
+}
+
 export function loadConfig(): AgentSearchConfig {
   const raw = process.env.AGENTSEARCH_BASE_URL?.trim() ?? "";
   const baseUrl = raw.replace(/\/+$/, "");
   if (!baseUrl) {
     throw new Error(MISSING_BASE_URL_MESSAGE);
+  }
+  if (!isSecureOrLocalUrl(baseUrl) && !(insecureHttpAllowed() && /^http:\/\//i.test(baseUrl))) {
+    throw new Error(
+      "AGENTSEARCH_BASE_URL must be an https:// URL (plain http:// is allowed only for localhost). Refusing to send requests or your API key in clear text. Set AGENTSEARCH_ALLOW_INSECURE_HTTP=1 only for a trusted private network."
+    );
   }
   const apiKey = process.env.AGENTSEARCH_API_KEY?.trim() || undefined;
   return { baseUrl, apiKey };
@@ -98,6 +131,7 @@ async function postJson(
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(requestTimeoutMs()),
   });
 
   const text = await res.text();

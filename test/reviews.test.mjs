@@ -122,6 +122,8 @@ test("the stdio server starts without AGENTSEARCH_BASE_URL and lists all five to
   const env = { ...process.env };
   delete env.AGENTSEARCH_BASE_URL;
   delete env.AGENTSEARCH_API_KEY;
+  delete env.AGENTSEARCH_WALLET_PRIVATE_KEY;
+  delete env.POCKET_PRIVATE_KEY;
   const child = spawn(process.execPath, [new URL("../dist/index.js", import.meta.url).pathname], { env, stdio: ["pipe", "pipe", "pipe"] });
   let out = "";
   let stderr = "";
@@ -138,5 +140,5 @@ test("the stdio server starts without AGENTSEARCH_BASE_URL and lists all five to
   assert.equal(exited, null, `server exited early: ${stderr}`);
   const list = out.split("\n").filter(Boolean).map((l) => JSON.parse(l)).find((m) => m.id === 2);
   assert.deepEqual(list.result.tools.map((t) => t.name).sort(), ["agentsearch_extract", "agentsearch_render", "agentsearch_review_lookup", "agentsearch_review_submit", "agentsearch_web_search"]);
-  assert.match(stderr, /AGENTSEARCH_BASE_URL not set/);
+  assert.match(stderr, /no wallet key or AGENTSEARCH_BASE_URL/);
 });

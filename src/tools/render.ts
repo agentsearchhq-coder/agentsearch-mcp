@@ -1,16 +1,15 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { loadConfig, renderPage } from "../client.js";
-import { errorContent, formatResult } from "./search.js";
+import { runOperation } from "../backend.js";
+import { PAYMENT_SENTENCE } from "./search.js";
 
 export const RENDER_DESCRIPTION = [
-  "Render one absolute http(s) URL in headless Chromium through the AgentSearch Web Render API, so JavaScript runs before content is captured, and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
+  "Render one absolute http(s) URL in headless Chromium with AgentSearch Web Render, so JavaScript runs before content is captured, and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
   "The response includes the final url, title, status_code, meta (render_ms, chars, truncated, js, lang …), warnings, error, and the rendered page body in each requested format: markdown (default), text, html, and/or links; plus an optional base64 screenshot.",
-  "Use this when the page is a JavaScript-heavy app (SPA, client-rendered docs or dashboards) where agentsearch_extract returns empty or partial content; for static pages prefer agentsearch_extract (cheaper and faster), and to find pages from a query use agentsearch_web_search.",
-  "Needs AGENTSEARCH_BASE_URL (your self-hosted API; there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/render. If the variable is missing, the tool makes no network call and returns an error explaining how to set it.",
+  "Use this when the page is a JavaScript-heavy app (SPA, client-rendered docs or dashboards) where agentsearch_extract returns empty or partial content; for static pages prefer agentsearch_extract (faster), and to find pages from a query use agentsearch_web_search.",
+  PAYMENT_SENTENCE,
   "Read-only: it loads the page like a browser visit and does not click, submit, or change anything, but it uses the network, has a hard backend deadline of about 4.2 s, and can hit rate limits (HTTP 429).",
-  "Target-site failures (DNS, TLS, timeouts, bot walls, robots.txt) come back as a normal result with a non-null error object {code, message, retryable} and empty or partial content; invalid input or a disallowed URL (HTTP 400), an oversized request (413), rate limits (429), and backend faults (500) are MCP errors with the status and a truncated body.",
-  "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key.",
+  "Target-site failures (DNS, TLS, timeouts, bot walls, robots.txt) come back as a normal result with a non-null error object {code, message, retryable} and empty or partial content; invalid input or a disallowed URL (HTTP 400, e.g. UPSTREAM_REJECTED), rate limits (429) and service faults (5xx) are MCP errors with the code and whether it is retryable.",
   "Optional fields are forwarded unchanged to the API, which applies its own defaults and limits.",
 ].join(" ");
 
@@ -101,15 +100,7 @@ export function registerRenderTool(server: McpServer): void {
       },
     },
     async (args) => {
-      try {
-        const cfg = loadConfig();
-        const data = await renderPage(cfg, args);
-        return {
-          content: [{ type: "text" as const, text: formatResult(data) }],
-        };
-      } catch (err) {
-        return errorContent(err);
-      }
+      return runOperation("render", args);
     }
   );
 }
