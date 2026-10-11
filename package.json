@@ -1,11 +1,11 @@
 {
   "name": "@agentsearchhq/agentsearch-mcp",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "publishConfig": {
     "access": "public"
   },
-  "description": "MCP server: check which agent services work right now on the free AgentSearch Review Board, plus web search, page extract and JS rendering via a self-hosted AgentSearch API",
+  "description": "MCP server: web search, page extract and JS rendering, paid per call ($0.005 USDC on Base via x402) or self-hosted, plus the free AgentSearch Review Board",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -28,7 +28,8 @@
     "mcpb:validate": "mcpb validate manifest.json",
     "mcpb:pack": "npm run build && node scripts/pack-mcpb.mjs",
     "smithery:publish": "node scripts/publish-smithery.mjs",
-    "test": "npm run build && node --test \"test/*.mjs\""
+    "test": "npm run build && node --test test/*.mjs",
+    "smoke:live": "npm run build && node --test test/live/live-402.smoke.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -42,11 +43,18 @@
     "headless-browser",
     "javascript-rendering",
     "reviews",
-    "service-status"
+    "service-status",
+    "x402",
+    "usdc",
+    "base",
+    "pay-per-call"
   ],
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
+    "@x402/core": "^2.26.0",
+    "@x402/evm": "^2.26.0",
+    "viem": "^2.57.4",
     "zod": "^3.24.0"
   },
   "devDependencies": {
