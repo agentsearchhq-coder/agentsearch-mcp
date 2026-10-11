@@ -1,12 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  AgentSearchHttpError,
-  clampMaxResults,
-  loadConfig,
-  webSearch,
-  extractPage,
-} from "../client.js";
+import { AgentSearchHttpError, clampMaxResults } from "../client.js";
+import { runOperation } from "../backend.js";
 
 export function formatResult(data: unknown): string {
   try {
@@ -34,23 +29,22 @@ export function errorContent(err: unknown): {
   };
 }
 
+export const PAYMENT_SENTENCE =
+  "Default mode: calls the Pocket Network Agentic Portal and PAYS $0.005 in USDC on Base per call over x402 from the wallet in AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY), never more than $0.005 per call and never more than AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, calls your self-hosted AgentSearch API instead (no payment). With neither set, makes no network call and returns setup instructions.";
+
 const WEB_SEARCH_DESCRIPTION = [
-  "Search the web through your self-hosted AgentSearch API and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
+  "Search the web with AgentSearch and return the response as pretty-printed JSON text.",
   "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead (or agentsearch_render for JavaScript-heavy pages).",
-  "Needs AGENTSEARCH_BASE_URL (your self-hosted API; there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/search. If the variable is missing, the tool makes no network call and returns an error explaining how to set it.",
-  "Read-only HTTP POST: not destructive, but it uses the network and can hit backend rate limits.",
-  "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key.",
-  "HTTP failures are MCP errors with the status and a truncated body.",
-  "Integers for max_results outside 1–5 are clamped (default 5), not rejected. The backend allows at most 5.",
+  PAYMENT_SENTENCE,
+  "Read-only: not destructive, but it uses the network and can hit rate limits.",
+  "Integers for max_results outside 1–5 are clamped (default 5), not rejected.",
 ].join(" ");
 
 const EXTRACT_DESCRIPTION = [
-  "Extract the content of one absolute URL through your self-hosted AgentSearch API and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
-  "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search instead; if the page is a JavaScript app whose content only appears after scripts run, use agentsearch_render.",
-  "Needs AGENTSEARCH_BASE_URL (your self-hosted API; there is no default). POSTs {AGENTSEARCH_BASE_URL}/v1/extract. If the variable is missing, the tool makes no network call and returns an error explaining how to set it.",
-  "Read-only HTTP POST: not destructive, but it fetches through AgentSearch and can hit network or backend rate limits.",
-  "When AGENTSEARCH_API_KEY is set it is sent as a Bearer token, and HTTP 401 is retried once without the key; any HTTP failure includes the status and a truncated body.",
-  'formats, when provided, is forwarded unchanged (for example "markdown" or "text") and is not limited to an enum; max_chars, when set, is a positive integer cap sent to the API rather than applied by this server.',
+  "Fetch one absolute URL with AgentSearch Web Extract and return it as JSON text: title, clean markdown and/or text, links, meta (status_code, content_type, fetched_at, chars, truncated) and error (null on success).",
+  "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search; for JavaScript apps whose content appears only after scripts run, use agentsearch_render.",
+  PAYMENT_SENTENCE,
+  "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
 ].join(" ");
 
 export function registerSearchTools(server: McpServer): void {
@@ -72,24 +66,7 @@ export function registerSearchTools(server: McpServer): void {
       },
     },
     async ({ query, max_results }) => {
-      try {
-        const cfg = loadConfig();
-        const clamped = clampMaxResults(max_results);
-        const data = await webSearch(cfg, {
-          query,
-          max_results: clamped,
-        });
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: formatResult(data),
-            },
-          ],
-        };
-      } catch (err) {
-        return errorContent(err);
-      }
+      return runOperation("search", { query, max_results: clampMaxResults(max_results) });
     }
   );
 
@@ -101,32 +78,20 @@ export function registerSearchTools(server: McpServer): void {
       inputSchema: {
         url: z.string().url().describe("Absolute URL of the page to extract."),
         formats: z
-          .array(z.string())
+          .array(z.enum(["markdown", "text"]))
           .optional()
-          .describe('Optional format names to request, e.g. ["markdown","text"].'),
+          .describe('Renderings to return: "markdown" and/or "text" (default: the service\'s choice).'),
         max_chars: z
           .number()
           .int()
-          .positive()
+          .min(1)
+          .max(100000)
           .optional()
-          .describe("Optional positive limit on extracted characters."),
+          .describe("Cap on returned characters (1–100000, service default 50000)."),
       },
     },
     async ({ url, formats, max_chars }) => {
-      try {
-        const cfg = loadConfig();
-        const data = await extractPage(cfg, { url, formats, max_chars });
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: formatResult(data),
-            },
-          ],
-        };
-      } catch (err) {
-        return errorContent(err);
-      }
+      return runOperation("extract", { url, formats, max_chars });
     }
   );
 }
