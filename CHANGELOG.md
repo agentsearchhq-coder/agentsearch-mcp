@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3
+
+### Fixed
+- Startup log no longer says search/extract/render return setup instructions with no config; it now says search uses the free relay and extract/render need a wallet key.
+
 ## 1.3.2
 
 ### Changed

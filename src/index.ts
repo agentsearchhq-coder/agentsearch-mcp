@@ -24,7 +24,7 @@ async function main(): Promise<void> {
       ? `base=${process.env.AGENTSEARCH_BASE_URL!.trim().replace(/\/+$/, "")}`
       : mode === "pocket"
         ? "search/extract/render: pay-per-call via Pocket portal (x402, USDC on Base)"
-        : "no wallet key or AGENTSEARCH_BASE_URL: search/extract/render will return setup instructions";
+        : "no wallet key or AGENTSEARCH_BASE_URL: search uses the free AgentSearch relay (25/day per user); extract/render need a wallet key";
   console.error(
     `agentsearch-mcp listening on stdio (${base}; reviews=${loadReviewsConfig().baseUrl})`
   );
