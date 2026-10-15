@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../dist/server.js";
 import { clampMaxResults, loadConfig, MISSING_BASE_URL_MESSAGE } from "../dist/client.js";
-import { SETUP_MESSAGE } from "../dist/pocket.js";
+import { paidOnlyMessage } from "../dist/relay.js";
 import { SERVER_VERSION } from "../dist/version.js";
 
 const ENV_KEYS = ["AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
@@ -82,19 +82,16 @@ test("direct mode POSTs {BASE}/v1/render with only provided fields", async () =>
   assert.equal(JSON.parse(res.content[0].text).title, "Example");
 });
 
-test("no wallet key and no AGENTSEARCH_BASE_URL: search/extract/render return setup instructions without a network call", async () => {
-  mockFetch(() => assert.fail("fetch must not be called when the base URL is missing"));
+test("no wallet key and no AGENTSEARCH_BASE_URL: extract/render return the paid-tool message without a network call", async () => {
+  mockFetch(() => assert.fail("fetch must not be called for extract/render without a wallet"));
   const client = await connect();
-  const res = await client.callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
-  assert.equal(res.isError, true);
-  assert.equal(res.content[0].text, SETUP_MESSAGE);
-  assert.match(SETUP_MESSAGE, /agentsearch_review_lookup/);
-  assert.match(SETUP_MESSAGE, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
-  assert.match(SETUP_MESSAGE, /USDC on Base/);
-  for (const [name, args] of [["agentsearch_web_search", { query: "x" }], ["agentsearch_extract", { url: "https://example.com/" }]]) {
+  for (const [name, args] of [["agentsearch_render", { url: "https://example.com/" }], ["agentsearch_extract", { url: "https://example.com/" }]]) {
     const r = await client.callTool({ name, arguments: args });
     assert.equal(r.isError, true);
-    assert.equal(r.content[0].text, SETUP_MESSAGE);
+    assert.equal(r.content[0].text, paidOnlyMessage(name));
+    assert.match(r.content[0].text, /\$0\.005/);
+    assert.match(r.content[0].text, /Pocket Network Agentic Portal/);
+    assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
   }
   assert.equal(calls.length, 0);
   assert.throws(loadConfig, { message: MISSING_BASE_URL_MESSAGE });
@@ -159,13 +156,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.3.1 across package metadata", () => {
+test("versions are consistent at 1.3.2 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.3.1");
+  assert.equal(pkg.version, "1.3.2");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);

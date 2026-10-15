@@ -4,6 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { createServer } from "../dist/server.js";
+import { paidOnlyMessage } from "../dist/relay.js";
 import { resetSessionBudget, PORTAL_PAYEE, USDC_BASE, SETUP_MESSAGE } from "../dist/pocket.js";
 
 const ENV_KEYS = [
@@ -203,11 +204,11 @@ test("invalid key is reported without echoing it; base URL wins over key", async
   assert.deepEqual(calls, ["https://self.test/v1/search"]);
 });
 
-test("POCKET_PRIVATE_KEY alias works; no key -> setup message", async () => {
+test("POCKET_PRIVATE_KEY alias works; no key -> paid-tool message", async () => {
   delete process.env.AGENTSEARCH_WALLET_PRIVATE_KEY;
   globalThis.fetch = async () => assert.fail("no network");
   const res = await call(await connect(), "agentsearch_render", { url: "https://example.com/" });
-  assert.equal(res.content[0].text, SETUP_MESSAGE);
+  assert.equal(res.content[0].text, paidOnlyMessage("agentsearch_render"));
   process.env.POCKET_PRIVATE_KEY = key.slice(2); // without 0x
   mockPortal({ paid: () => okEnvelope("agentsearch-web-search-v1", {}, privateKeyToAccount(key).address) });
   assert.equal((await call(await connect(), "agentsearch_web_search", { query: "q" })).isError, undefined);
