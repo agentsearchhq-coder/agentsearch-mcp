@@ -44,6 +44,7 @@ const EXTRACT_DESCRIPTION = [
   "Fetch one absolute URL with AgentSearch Web Extract and return it as JSON text: title, clean markdown and/or text, links, meta (status_code, content_type, fetched_at, chars, truncated) and error (null on success).",
   "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search; for JavaScript apps whose content appears only after scripts run, use agentsearch_render.",
   PAYMENT_SENTENCE,
+  "Note: the free relay (AGENTSEARCH_BASE_URL=https://relay.agentsearchhq.com) serves search only; this tool needs paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or a self-hosted API.",
   "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
 ].join(" ");
 

@@ -44,6 +44,8 @@ If `AGENTSEARCH_BASE_URL` is set, it takes precedence and no payment is made:
 - Extract: `POST {AGENTSEARCH_BASE_URL}/v1/extract`
 - Render: `POST {AGENTSEARCH_BASE_URL}/v1/render` (headless Chromium; [OpenAPI spec](https://agentsearchhq.com/specs/render-openapi.json))
 
+> **Free relay limitation:** `https://relay.agentsearchhq.com` serves **search only**. With it as `AGENTSEARCH_BASE_URL`, `agentsearch_extract` and `agentsearch_render` return a clear error (instead of a bare `404 {"detail":"Not Found"}`). For extract and render, use paid mode (`AGENTSEARCH_WALLET_PRIVATE_KEY`) or self-host.
+
 ---
 
 ## Tools

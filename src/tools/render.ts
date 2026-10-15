@@ -8,6 +8,7 @@ export const RENDER_DESCRIPTION = [
   "The response includes the final url, title, status_code, meta (render_ms, chars, truncated, js, lang …), warnings, error, and the rendered page body in each requested format: markdown (default), text, html, and/or links; plus an optional base64 screenshot.",
   "Use this when the page is a JavaScript-heavy app (SPA, client-rendered docs or dashboards) where agentsearch_extract returns empty or partial content; for static pages prefer agentsearch_extract (faster), and to find pages from a query use agentsearch_web_search.",
   PAYMENT_SENTENCE,
+  "Note: the free relay (AGENTSEARCH_BASE_URL=https://relay.agentsearchhq.com) serves search only; this tool needs paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or a self-hosted API.",
   "Read-only: it loads the page like a browser visit and does not click, submit, or change anything, but it uses the network, has a hard backend deadline of about 4.2 s, and can hit rate limits (HTTP 429).",
   "Target-site failures (DNS, TLS, timeouts, bot walls, robots.txt) come back as a normal result with a non-null error object {code, message, retryable} and empty or partial content; invalid input or a disallowed URL (HTTP 400, e.g. UPSTREAM_REJECTED), rate limits (429) and service faults (5xx) are MCP errors with the code and whether it is retryable.",
   "Optional fields are forwarded unchanged to the API, which applies its own defaults and limits.",
