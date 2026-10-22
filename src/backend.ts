@@ -1,13 +1,15 @@
-/** Chooses how search/extract/render are served: self-hosted base URL, Pocket portal (x402), or a setup message. */
+/** Chooses how search/extract/render are served: self-hosted base URL, Pocket portal (x402), or the free relay (search only). */
 import { extractPage, hasBaseUrl, loadConfig, renderPage, webSearch, type ExtractRequest, type RenderRequest, type SearchRequest } from "./client.js";
-import { callPortal, hasWalletKey, PortalError, SETUP_MESSAGE, type PortalOperation } from "./pocket.js";
+import { callPortal, hasWalletKey, PortalError, type PortalOperation } from "./pocket.js";
+import { AgentSearchHttpError } from "./client.js";
+import { paidOnlyMessage, relaySearch } from "./relay.js";
 
-export type BackendMode = "self-hosted" | "pocket" | "unconfigured";
+export type BackendMode = "self-hosted" | "pocket" | "free-relay";
 
 export function backendMode(): BackendMode {
   if (hasBaseUrl()) return "self-hosted";
   if (hasWalletKey()) return "pocket";
-  return "unconfigured";
+  return "free-relay";
 }
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean; structuredContent?: Record<string, unknown> };
@@ -33,7 +35,10 @@ export async function runOperation(
         : await renderPage(cfg, body as RenderRequest);
       return ok(data);
     }
-    if (mode === "unconfigured") return fail(SETUP_MESSAGE);
+    if (mode === "free-relay") {
+      if (op === "search") return ok(await relaySearch(body as SearchRequest));
+      return fail(paidOnlyMessage(op === "extract" ? "agentsearch_extract" : "agentsearch_render"));
+    }
     const clean: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(body)) if (v !== undefined && v !== null) clean[k] = v;
     const result = await callPortal(op, clean);
@@ -42,6 +47,7 @@ export async function runOperation(
     if (err instanceof PortalError) {
       return fail(Object.keys(err.detail).length ? { message: err.message, ...err.detail } : err.message);
     }
+    if (err instanceof AgentSearchHttpError && err.status === 429 && mode === "free-relay") return fail(err.body);
     return fail(err instanceof Error ? err.message : String(err));
   }
 }

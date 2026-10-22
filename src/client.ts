@@ -39,7 +39,21 @@ export interface RenderRequest {
 }
 
 export const MISSING_BASE_URL_MESSAGE =
-  "AGENTSEARCH_BASE_URL is not set, so agentsearch_web_search, agentsearch_extract and agentsearch_render are unavailable. Set AGENTSEARCH_BASE_URL to the base URL of your self-hosted AgentSearch-compatible API (no trailing slash) in this MCP server's env and restart it. The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without it.";
+  "AGENTSEARCH_BASE_URL is not set, so agentsearch_web_search, agentsearch_extract and agentsearch_render are unavailable. Set AGENTSEARCH_BASE_URL to the base URL of your self-hosted AgentSearch-compatible API (no trailing slash) in this MCP server's env and restart it. The free relay (https://relay.agentsearchhq.com) serves search only; agentsearch_extract and agentsearch_render need paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or a self-hosted API. The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without it.";
+
+/** Error for a base URL (e.g. the free relay) that does not serve /v1/extract or /v1/render. */
+export function unsupportedEndpointMessage(path: "/v1/extract" | "/v1/render"): string {
+  return `This base URL does not serve ${path}. The free relay supports search only. Use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or self-host.`;
+}
+
+function isNotFoundDetail(text: string): boolean {
+  try {
+    const j = JSON.parse(text) as { detail?: unknown };
+    return typeof j?.detail === "string" && j.detail.trim().toLowerCase() === "not found";
+  } catch {
+    return false;
+  }
+}
 
 /** True when AGENTSEARCH_BASE_URL is set (non-blank). */
 export function hasBaseUrl(): boolean {
@@ -117,7 +131,7 @@ async function postJson(
   url: string,
   body: unknown,
   apiKey: string | undefined,
-  opts?: { retryWithoutKeyOn401?: boolean }
+  opts?: { retryWithoutKeyOn401?: boolean; notFoundPath?: "/v1/extract" | "/v1/render" }
 ): Promise<unknown> {
   const headers: Record<string, string> = {
     "content-type": "application/json",
@@ -142,7 +156,11 @@ async function postJson(
     opts?.retryWithoutKeyOn401 !== false
   ) {
     // Some deployments reject a present key; retry once without it.
-    return postJson(url, body, undefined, { retryWithoutKeyOn401: false });
+    return postJson(url, body, undefined, { ...opts, retryWithoutKeyOn401: false });
+  }
+
+  if (res.status === 404 && opts?.notFoundPath && isNotFoundDetail(text)) {
+    throw new AgentSearchHttpError(404, unsupportedEndpointMessage(opts.notFoundPath));
   }
 
   if (!res.ok) {
@@ -176,7 +194,7 @@ export async function extractPage(
   const body: Record<string, unknown> = { url: req.url };
   if (req.formats) body.formats = req.formats;
   if (req.max_chars !== undefined) body.max_chars = req.max_chars;
-  return postJson(extractUrl(cfg), body, cfg.apiKey, { retryWithoutKeyOn401: true });
+  return postJson(extractUrl(cfg), body, cfg.apiKey, { retryWithoutKeyOn401: true, notFoundPath: "/v1/extract" });
 }
 
 const RENDER_FIELDS = [
@@ -202,6 +220,7 @@ export async function renderPage(
   }
   return postJson(renderUrl(cfg), body, cfg.apiKey, {
     retryWithoutKeyOn401: true,
+    notFoundPath: "/v1/render",
   });
 }
 

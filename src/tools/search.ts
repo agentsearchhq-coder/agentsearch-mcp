@@ -30,13 +30,13 @@ export function errorContent(err: unknown): {
 }
 
 export const PAYMENT_SENTENCE =
-  "Default mode: calls the Pocket Network Agentic Portal and PAYS $0.005 in USDC on Base per call over x402 from the wallet in AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY), never more than $0.005 per call and never more than AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, calls your self-hosted AgentSearch API instead (no payment). With neither set, makes no network call and returns setup instructions.";
+  "Default mode: calls the Pocket Network Agentic Portal and PAYS in USDC on Base per call over x402 ($0.005 per search or extract call) from the wallet in AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY), never more than the per-call cap and never more than AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, calls your self-hosted AgentSearch API instead (no payment). With neither set (no config), agentsearch_web_search uses the free AgentSearch relay (https://relay.agentsearchhq.com, up to 25 searches/day per IP, subject to shared daily capacity, no payment), while agentsearch_extract and agentsearch_render make no network call and explain how to add a wallet.";
 
 const WEB_SEARCH_DESCRIPTION = [
   "Search the web with AgentSearch and return the response as pretty-printed JSON text.",
   "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead (or agentsearch_render for JavaScript-heavy pages).",
   PAYMENT_SENTENCE,
-  "Read-only: not destructive, but it uses the network and can hit rate limits.",
+  "Read-only: not destructive, but it uses the network and can hit rate limits (on the free relay, a 429 means the daily limit was reached; the error says how to upgrade to paid).",
   "Integers for max_results outside 1–5 are clamped (default 5), not rejected.",
 ].join(" ");
 
@@ -44,6 +44,7 @@ const EXTRACT_DESCRIPTION = [
   "Fetch one absolute URL with AgentSearch Web Extract and return it as JSON text: title, clean markdown and/or text, links, meta (status_code, content_type, fetched_at, chars, truncated) and error (null on success).",
   "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search; for JavaScript apps whose content appears only after scripts run, use agentsearch_render.",
   PAYMENT_SENTENCE,
+  "Note: the free relay serves search only; this tool needs paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or a self-hosted API.",
   "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
 ].join(" ");
 
