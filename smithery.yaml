@@ -1,4 +1,4 @@
-# Smithery start command. Review tools work with no config. Search/extract/render pay $0.005 per call
+# Smithery start command. Review tools work with no config. Search/extract pay $0.005 per call (render is paid too)
 # in USDC on Base via the Pocket Network Agentic Portal (x402) when a wallet key is set, or use your
 # self-hosted API when a base URL is set.
 startCommand:
@@ -8,7 +8,7 @@ startCommand:
     properties:
       walletPrivateKey:
         type: string
-        description: Optional 64-hex private key of a NEW wallet holding a little USDC on Base. Pays $0.005 per search/extract/render call via x402. Never logged.
+        description: Optional 64-hex private key of a NEW wallet holding a little USDC on Base. Pays $0.005 per search/extract call via x402. Never logged.
       maxTotalAtomic:
         type: string
         default: "1000000"

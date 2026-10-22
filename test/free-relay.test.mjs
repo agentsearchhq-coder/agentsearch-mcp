@@ -60,7 +60,7 @@ test("free relay 429 returns the limit message with upgrade instructions", async
   const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
   assert.equal(r.isError, true);
   assert.equal(r.content[0].text, FREE_RELAY_LIMIT_MESSAGE);
-  assert.match(r.content[0].text, /25 searches per day/);
+  assert.match(r.content[0].text, /up to 25 searches\/day per IP, subject to shared daily capacity/);
   assert.match(r.content[0].text, /Upgrade to paid/);
   assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
   assert.match(r.content[0].text, /\$0\.005/);

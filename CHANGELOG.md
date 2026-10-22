@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4
+
+### Changed
+- Free-tier wording everywhere: up to 25 searches/day per IP, subject to shared daily capacity (no "per user" or "unlimited").
+- Prices stated only for search and extract ($0.005 per call); no behavior changes.
+
 ## 1.3.3
 
 ### Fixed

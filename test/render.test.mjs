@@ -89,7 +89,8 @@ test("no wallet key and no AGENTSEARCH_BASE_URL: extract/render return the paid-
     const r = await client.callTool({ name, arguments: args });
     assert.equal(r.isError, true);
     assert.equal(r.content[0].text, paidOnlyMessage(name));
-    assert.match(r.content[0].text, /\$0\.005/);
+    if (name === "agentsearch_extract") assert.match(r.content[0].text, /\$0\.005/);
+    else assert.doesNotMatch(r.content[0].text, /\$0\.005/);
     assert.match(r.content[0].text, /Pocket Network Agentic Portal/);
     assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
   }
@@ -156,13 +157,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.3.3 across package metadata", () => {
+test("versions are consistent at 1.3.4 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.3.3");
+  assert.equal(pkg.version, "1.3.4");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);
