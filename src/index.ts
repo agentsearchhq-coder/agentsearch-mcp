@@ -6,7 +6,8 @@
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { backendMode } from "./backend.js";
+import { backendMode, searchMode } from "./backend.js";
+import { hasWalletKey } from "./pocket.js";
 import { loadReviewsConfig } from "./reviews-client.js";
 import { createServer } from "./server.js";
 
@@ -18,13 +19,17 @@ async function main(): Promise<void> {
 
   // stdout is reserved for MCP JSON-RPC; log to stderr only
   // Never log the wallet key; only the mode.
-  const mode = backendMode();
+  const search = backendMode("search");
   const base =
-    mode === "self-hosted"
+    search === "self-hosted"
       ? `base=${process.env.AGENTSEARCH_BASE_URL!.trim().replace(/\/+$/, "")}`
-      : mode === "pocket"
-        ? "search/extract/render: pay-per-call via Pocket portal (x402, USDC on Base)"
-        : "no wallet key or AGENTSEARCH_BASE_URL: search uses the free AgentSearch relay (up to 25 searches/day per IP, subject to shared daily capacity); extract/render need a wallet key";
+      : searchMode() === "invalid"
+        ? "AGENTSEARCH_MODE is invalid (use free, paid or auto): search calls will return an error until it is fixed"
+        : search === "pocket"
+          ? "search: pay-per-call via Pocket portal (x402, USDC on Base) because AGENTSEARCH_MODE opts in; extract/render pay per call too"
+          : hasWalletKey()
+            ? "search: free AgentSearch relay (up to 25 searches/day per IP, subject to shared daily capacity; set AGENTSEARCH_MODE=paid to pay for search); extract/render: pay-per-call via Pocket portal (x402, USDC on Base)"
+            : "no wallet key or AGENTSEARCH_BASE_URL: search uses the free AgentSearch relay (up to 25 searches/day per IP, subject to shared daily capacity); extract/render need a wallet key";
   console.error(
     `agentsearch-mcp listening on stdio (${base}; reviews=${loadReviewsConfig().baseUrl})`
   );

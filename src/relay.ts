@@ -1,11 +1,12 @@
 /** Free AgentSearch relay: search only, up to 25 searches/day per IP, subject to shared daily capacity, no key or wallet needed. */
 import { AgentSearchHttpError, requestTimeoutMs, type SearchRequest } from "./client.js";
+import { hasWalletKey } from "./pocket.js";
 
 export const FREE_RELAY_URL = "https://relay.agentsearchhq.com";
 export const FREE_RELAY_DAILY_LIMIT = 25;
 
 const ADD_WALLET =
-  "To add a wallet: set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config, fund it with a little USDC on Base (for example $1; no ETH needed), and restart the client.";
+  "To add a wallet: set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config, fund it with a little USDC on Base (for example $1; no ETH needed), and restart the client. A wallet key alone enables Extract and Render; search stays on the free tier unless you also set AGENTSEARCH_MODE=paid.";
 
 export const FREE_RELAY_LIMIT_MESSAGE = [
   `Free search limit reached: the free AgentSearch relay allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
@@ -24,6 +25,12 @@ export function paidOnlyMessage(tool: "agentsearch_extract" | "agentsearch_rende
   ].join(" ");
 }
 
+/** Limit message when a wallet is already configured: only the search mode needs to change. */
+export const FREE_RELAY_LIMIT_MESSAGE_WITH_WALLET = [
+  `Free search limit reached: the free AgentSearch relay allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
+  "A wallet key is configured, but search is in free mode (the default). To pay $0.005 per search call instead (capped per call and by AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00), set AGENTSEARCH_MODE=paid in the env block of this MCP server and restart the client.",
+].join(" ");
+
 /** Search through the free relay. Throws AgentSearchHttpError(429, FREE_RELAY_LIMIT_MESSAGE) when the daily limit is hit. */
 export async function relaySearch(req: SearchRequest): Promise<unknown> {
   const body: Record<string, unknown> = { query: req.query };
@@ -35,7 +42,7 @@ export async function relaySearch(req: SearchRequest): Promise<unknown> {
     signal: AbortSignal.timeout(requestTimeoutMs()),
   });
   const text = await res.text();
-  if (res.status === 429) throw new AgentSearchHttpError(429, FREE_RELAY_LIMIT_MESSAGE);
+  if (res.status === 429) throw new AgentSearchHttpError(429, hasWalletKey() ? FREE_RELAY_LIMIT_MESSAGE_WITH_WALLET : FREE_RELAY_LIMIT_MESSAGE);
   if (!res.ok) throw new AgentSearchHttpError(res.status, text || res.statusText);
   let data: unknown;
   try {

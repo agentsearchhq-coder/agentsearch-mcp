@@ -29,22 +29,25 @@ export function errorContent(err: unknown): {
   };
 }
 
-export const PAYMENT_SENTENCE =
-  "Default mode: calls the Pocket Network Agentic Portal and PAYS in USDC on Base per call over x402 ($0.005 per search or extract call) from the wallet in AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY), never more than the per-call cap and never more than AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, calls your self-hosted AgentSearch API instead (no payment). With neither set (no config), agentsearch_web_search uses the free AgentSearch relay (https://relay.agentsearchhq.com, up to 25 searches/day per IP, subject to shared daily capacity, no payment), while agentsearch_extract and agentsearch_render make no network call and explain how to add a wallet.";
+export const SEARCH_COST_SENTENCE =
+  "Free by default: with no configuration it uses the free AgentSearch relay (up to 25 searches/day per IP, subject to shared daily capacity, no payment), even if a wallet key is set for Extract/Render. Only if the operator sets AGENTSEARCH_MODE=paid does it pay $0.005 per call in USDC on Base over x402 through the Pocket Network Agentic Portal instead (never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00); paid results include the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
+
+export const PAID_TOOL_SENTENCE =
+  "Paid tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and then pays per call in USDC on Base over x402 through the Pocket Network Agentic Portal, never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. With no wallet key it makes no network call and explains how to add one. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
 
 const WEB_SEARCH_DESCRIPTION = [
   "Search the web with AgentSearch and return the response as pretty-printed JSON text.",
   "Use this when you have a query and need hits rather than a page body; if you already have a URL, use agentsearch_extract instead (or agentsearch_render for JavaScript-heavy pages).",
-  PAYMENT_SENTENCE,
-  "Read-only: not destructive, but it uses the network and can hit rate limits (on the free relay, a 429 means the daily limit was reached; the error says how to upgrade to paid).",
+  SEARCH_COST_SENTENCE,
+  "Read-only: not destructive, but it uses the network and can hit rate limits (on the free tier, a 429 means the daily limit was reached; the error says how to upgrade).",
   "Integers for max_results outside 1–5 are clamped (default 5), not rejected.",
 ].join(" ");
 
 const EXTRACT_DESCRIPTION = [
   "Fetch one absolute URL with AgentSearch Web Extract and return it as JSON text: title, clean markdown and/or text, links, meta (status_code, content_type, fetched_at, chars, truncated) and error (null on success).",
   "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search; for JavaScript apps whose content appears only after scripts run, use agentsearch_render.",
-  PAYMENT_SENTENCE,
-  "Note: the free relay serves search only; this tool needs paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or a self-hosted API.",
+  PAID_TOOL_SENTENCE,
+  "Note: the free tier covers search only; this tool needs a wallet key or a self-hosted API.",
   "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
 ].join(" ");
 
@@ -54,6 +57,13 @@ export function registerSearchTools(server: McpServer): void {
     {
       title: "AgentSearch Web Search",
       description: WEB_SEARCH_DESCRIPTION,
+      annotations: {
+        title: "AgentSearch Web Search",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       inputSchema: {
         query: z
           .string()
@@ -76,6 +86,13 @@ export function registerSearchTools(server: McpServer): void {
     {
       title: "AgentSearch Extract",
       description: EXTRACT_DESCRIPTION,
+      annotations: {
+        title: "AgentSearch Extract",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       inputSchema: {
         url: z.string().url().describe("Absolute URL of the page to extract."),
         formats: z

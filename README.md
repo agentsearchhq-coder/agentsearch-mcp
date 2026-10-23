@@ -3,7 +3,7 @@
 MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**. It has two groups of tools:
 
 - **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the free AgentSearch relay (`https://relay.agentsearchhq.com/v1/search`): **up to 25 searches/day per IP, subject to shared daily capacity**, search only, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
-- **Web search, extract and render, pay per call:** `agentsearch_web_search`, `agentsearch_extract` and `agentsearch_render`. Add a wallet key and each call goes through the [Pocket Network Agentic Portal](https://agent.pocket.network) and pays in USDC on Base (**$0.005 per search or extract call**) over [x402](https://x402.org). No account, no API key, no ETH for gas. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
+- **Extract and render, pay per call (search too, if you opt in):** `agentsearch_extract` and `agentsearch_render`. Add a wallet key and these go through the [Pocket Network Agentic Portal](https://agent.pocket.network) and pay in USDC on Base (**$0.005 per extract call**) over [x402](https://x402.org). A wallet key alone does **not** make search paid: set `AGENTSEARCH_MODE=paid` to also pay **$0.005 per search call**. No account, no API key, no ETH for gas. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
 - **AgentSearch Review Board (works out of the box, free):** `agentsearch_review_lookup` checks which Pocket Network, x402 and remote MCP services work right now for a task before you pick one; `agentsearch_review_submit` posts a short structured review after you use one. No configuration or key needed; the board is at https://reviews.agentsearchhq.com.
 
 ```bash
@@ -41,7 +41,7 @@ Portal errors (`{ "error": { "code", "message", "retryable" } }`, e.g. `400 UPST
 - **Per call:** never signs more than **$0.005** (5000 atomic units). `AGENTSEARCH_MAX_PER_CALL_ATOMIC` can lower this, never raise it.
 - **Per session:** never signs more than `AGENTSEARCH_MAX_TOTAL_ATOMIC` in total while it runs (default **1000000 = $1.00**). Spend is counted when a payment is signed. The total resets when the server restarts.
 - **Only these terms:** scheme `exact`, network Base (`eip155:8453`), asset USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`), the portal's payee (`0xF732ea490c5766071785a2310523f7fA2CEbB829`), and a 402 whose resource is one of the three services above. Anything else is refused with nothing signed.
-- The key is read from env, used only to sign, and never logged or returned in a tool result.
+- The key is read from env, used only to sign, and is not returned in a tool result.
 - **Use a new wallet made for this**, holding only what you are willing to spend. The key sits in plain text in your client config.
 - Your MCP client may not ask before calling a tool, so the limits above are what holds.
 
@@ -131,6 +131,7 @@ See `.env.example`. Never commit a real `.env`.
       "env": {
         "AGENTSEARCH_WALLET_PRIVATE_KEY": "0x…",
         "AGENTSEARCH_MAX_TOTAL_ATOMIC": "1000000"
+        // add "AGENTSEARCH_MODE": "paid" only if you also want search to be paid
       }
     }
   }
@@ -145,6 +146,34 @@ Self-hosted instead (no payment), with an optional API key:
   "AGENTSEARCH_API_KEY": "your-key-here"
 }
 ```
+
+---
+
+## Claude Code
+
+Free search, no key (stdio is the default transport):
+
+```bash
+claude mcp add agentsearch -- npx -y @agentsearchhq/agentsearch-mcp
+claude mcp list
+```
+
+Notes:
+
+- `--` separates Claude Code's flags from the server command.
+- Add `--scope project` to write a shareable `.mcp.json`, or `--scope user` for every project. The default scope is `local` (only you, this project).
+- Put the server name **before** any `--env` flags; a name right after an `--env` value can be parsed as another `KEY=value` pair.
+- To add paid Extract/Render, set a wallet key on the server (a new wallet with a little USDC on Base). From 1.3.5 search stays free unless you also set `AGENTSEARCH_MODE=paid`:
+
+```bash
+claude mcp add agentsearch-paid \
+  --env AGENTSEARCH_WALLET_PRIVATE_KEY=0xYOUR_DEDICATED_WALLET_KEY \
+  --env AGENTSEARCH_MAX_TOTAL_ATOMIC=50000 \
+  -- npx -y @agentsearchhq/agentsearch-mcp
+```
+
+- On 1.3.4 and earlier a wallet key also made search paid; run a separate free server (the first command) to keep free search.
+- Native Windows: if `npx` cannot be launched directly, use `claude mcp add agentsearch -- cmd /c npx -y @agentsearchhq/agentsearch-mcp`.
 
 ---
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.5
+
+### Changed
+- **A wallet key no longer makes search paid.** Search is free by default even when `AGENTSEARCH_WALLET_PRIVATE_KEY` / `POCKET_PRIVATE_KEY` is set (for example inherited from the parent shell), so Extract/Render can be enabled while search stays on the free tier. Paid search is an explicit opt-in: `AGENTSEARCH_MODE=paid`. `AGENTSEARCH_MODE=auto` restores the 1.3.0-1.3.4 behavior (paid search when a wallet key is set). An unrecognized value makes search return an error and make no call. `AGENTSEARCH_BASE_URL` still takes precedence. Same pattern as `@agentsearchhq/langchain` 0.2.1.
+  **Migration:** if you relied on a wallet key making search paid, add `AGENTSEARCH_MODE=paid` (or `auto`).
+- When the free daily limit is hit and a wallet key is already configured, the message says to set `AGENTSEARCH_MODE=paid` instead of how to add a wallet.
+- Tool descriptions lead with the real default (free search) instead of "Default mode: ... PAYS", and no longer include the relay hostname.
+- Startup log reflects the search mode.
+
+### Added
+- MCP tool annotations (`readOnlyHint`, `destructiveHint: false`, `idempotentHint`, `openWorldHint`) on `agentsearch_web_search` and `agentsearch_extract`.
+- README: Claude Code section (`claude mcp add ...`, scopes, `--env` ordering, paid server, Windows note), modes table and `AGENTSEARCH_MODE` docs.
+
 ## 1.3.4
 
 ### Changed

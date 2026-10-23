@@ -8,7 +8,7 @@ import { paidOnlyMessage } from "../dist/relay.js";
 import { resetSessionBudget, PORTAL_PAYEE, USDC_BASE, SETUP_MESSAGE } from "../dist/pocket.js";
 
 const ENV_KEYS = [
-  "AGENTSEARCH_BASE_URL", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_MAX_TOTAL_ATOMIC",
+  "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_MAX_TOTAL_ATOMIC",
   "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC", "AGENTSEARCH_PORTAL_URL",
 ];
 let saved, realFetch, calls, key;
@@ -49,6 +49,7 @@ beforeEach(() => {
   for (const k of ENV_KEYS) delete process.env[k];
   key = generatePrivateKey(); // throwaway, unfunded
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
+  process.env.AGENTSEARCH_MODE = "paid"; // 1.3.5: paid search is an explicit opt-in (a wallet key alone keeps search free)
   realFetch = globalThis.fetch;
   calls = [];
   resetSessionBudget();
