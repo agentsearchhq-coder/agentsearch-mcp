@@ -6,10 +6,35 @@ import { paidOnlyMessage, relaySearch } from "./relay.js";
 
 export type BackendMode = "self-hosted" | "pocket" | "free-relay";
 
-export function backendMode(): BackendMode {
+export const MODE_ENV_VAR = "AGENTSEARCH_MODE";
+export const SEARCH_MODES = ["free", "paid", "auto"] as const;
+export type SearchMode = (typeof SEARCH_MODES)[number];
+
+/**
+ * Search mode from AGENTSEARCH_MODE. Default "free": search uses the free relay even when a wallet key is set,
+ * so a key exported for Extract/Render (or inherited from the parent shell) never silently makes search paid.
+ * "paid": search pays $0.005 per call via the portal (needs a wallet key). "auto": legacy 1.3.0-1.3.4 behavior
+ * (paid search when a wallet key is set, else free). Returns "invalid" for an unrecognized value.
+ */
+export function searchMode(): SearchMode | "invalid" {
+  const v = (process.env[MODE_ENV_VAR] ?? "").trim().toLowerCase();
+  if (!v) return "free";
+  return (SEARCH_MODES as readonly string[]).includes(v) ? (v as SearchMode) : "invalid";
+}
+
+export function invalidModeMessage(): string {
+  return `${MODE_ENV_VAR} must be one of 'free', 'paid' or 'auto' (got ${JSON.stringify((process.env[MODE_ENV_VAR] ?? "").trim())}). No call was made.`;
+}
+
+/** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set. */
+export function backendMode(op: PortalOperation = "search"): BackendMode {
   if (hasBaseUrl()) return "self-hosted";
-  if (hasWalletKey()) return "pocket";
-  return "free-relay";
+  if (op === "search") {
+    const m = searchMode();
+    if (m === "paid" || (m === "auto" && hasWalletKey())) return "pocket";
+    return "free-relay";
+  }
+  return hasWalletKey() ? "pocket" : "free-relay";
 }
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean; structuredContent?: Record<string, unknown> };
@@ -25,8 +50,9 @@ export async function runOperation(
   op: PortalOperation,
   body: SearchRequest | ExtractRequest | RenderRequest
 ): Promise<ToolResult> {
-  const mode = backendMode();
+  const mode = backendMode(op);
   try {
+    if (op === "search" && mode !== "self-hosted" && searchMode() === "invalid") return fail(invalidModeMessage());
     if (mode === "self-hosted") {
       const cfg = loadConfig();
       const data =

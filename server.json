@@ -8,22 +8,29 @@
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.3.4",
+  "version": "1.3.5",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.3.4",
+      "version": "1.3.5",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "AGENTSEARCH_WALLET_PRIVATE_KEY",
-          "description": "Private key of a dedicated wallet with a little USDC on Base; pays $0.005 per search/extract call via the Pocket portal (x402). Alias: POCKET_PRIVATE_KEY",
+          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render ($0.005 per extract call) via the Pocket portal (x402); search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
           "isRequired": false,
           "isSecret": true,
           "format": "string"
+        },
+        {
+          "name": "AGENTSEARCH_MODE",
+          "description": "Search mode: free (default; free relay even with a wallet key), paid (pay $0.005 per search; needs a key) or auto (paid search when a key is set)",
+          "isRequired": false,
+          "format": "string",
+          "default": "free"
         },
         {
           "name": "AGENTSEARCH_MAX_TOTAL_ATOMIC",

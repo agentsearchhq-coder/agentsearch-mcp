@@ -157,13 +157,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.3.4 across package metadata", () => {
+test("versions are consistent at 1.3.5 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.3.4");
+  assert.equal(pkg.version, "1.3.5");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);
@@ -174,9 +174,10 @@ test("versions are consistent at 1.3.4 across package metadata", () => {
     "https://agentsearchhq.com/?utm_source=mcp-registry&utm_medium=directory&utm_campaign=listing"
   );
   assert.ok(serverJson.description.length <= 100);
-  assert.equal(serverJson.packages[0].environmentVariables.some((v) => v.name === "AGENTSEARCH_MODE"), false);
+  // 1.3.5: AGENTSEARCH_MODE (free|paid|auto, search only) is documented; default is free.
+  assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_MODE").default, "free");
   assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_BASE_URL").isRequired, false);
-  assert.equal(manifest.user_config.AGENTSEARCH_MODE, undefined);
+  assert.equal(manifest.user_config.AGENTSEARCH_MODE.default, "free");
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.required, false);
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.default, undefined);
   assert.ok(manifest.tools.some((t) => t.name === "agentsearch_render"));
@@ -184,7 +185,7 @@ test("versions are consistent at 1.3.4 across package metadata", () => {
   const published = ["README.md", "manifest.json", "server.json", "smithery.yaml", ".env.example", "package.json"];
   for (const file of published) {
     const body = text(file);
-    for (const needle of ["Users/", "Holla", "OneDrive", "127.0.0.1", "AGENTSEARCH_MODE"]) {
+    for (const needle of ["Users/", "Holla", "OneDrive", "127.0.0.1"]) {
       assert.equal(body.includes(needle), false, `${file} contains ${needle}`);
     }
     const withoutProductName = body.replaceAll("Claude Desktop", "");
