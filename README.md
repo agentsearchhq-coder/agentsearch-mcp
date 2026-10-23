@@ -15,10 +15,11 @@ npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immedi
 | Config | `agentsearch_web_search` | `agentsearch_extract` / `agentsearch_render` |
 |--------|--------------------------|-----------------------------------------------|
 | Nothing set (default) | Free relay, up to 25 searches/day per IP, subject to shared daily capacity | Paid tools: return a message with how to add a wallet; no network call |
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Paid, $0.005 per call via the Pocket portal | Paid via the Pocket portal (extract $0.005 per call) |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Still free (relay) | Paid via the Pocket portal (extract $0.005 per call) |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` + `AGENTSEARCH_MODE=paid` | Paid, $0.005 per call via the Pocket portal | Paid via the Pocket portal |
 | `AGENTSEARCH_BASE_URL` (takes precedence) | Your self-hosted API | Your self-hosted API |
 
-To upgrade from the free relay, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet with a little USDC on Base) in this server's `env` and restart your client.
+To use paid Extract/Render, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet with a little USDC on Base) in this server's `env` and restart your client.
 
 ### How the paid mode works
 
