@@ -43,7 +43,7 @@ export const MISSING_BASE_URL_MESSAGE =
 
 /** Error for a base URL (e.g. the free relay) that does not serve /v1/extract or /v1/render. */
 export function unsupportedEndpointMessage(path: "/v1/extract" | "/v1/render"): string {
-  return `This base URL does not serve ${path}. The free relay supports search only. Use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or self-host.`;
+  return `This base URL does not serve ${path}. The free tier supports search only. Use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or self-host.`;
 }
 
 function isNotFoundDetail(text: string): boolean {

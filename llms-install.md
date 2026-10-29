@@ -44,7 +44,7 @@ After the server connects, it lists exactly these tools:
 
 With nothing else configured:
 
-- `agentsearch_web_search` works immediately (free relay, no API key, no signup, no wallet).
+- `agentsearch_web_search` works immediately (free search, up to 25 searches/day per IP, no API key, no signup, no wallet).
 - `agentsearch_review_lookup` and `agentsearch_review_submit` work immediately. No key.
 - `agentsearch_extract` and `agentsearch_render` are listed, but they return setup instructions and make no network call until a wallet key or a self-hosted base URL is set.
 
@@ -84,7 +84,7 @@ Set the wallet key and a session spend cap on the same `agentsearch` entry:
 | `AGENTSEARCH_WALLET_PRIVATE_KEY` | Private key (64 hex, `0x` optional) of a dedicated wallet with a little USDC on Base. Alias: `POCKET_PRIVATE_KEY`. |
 | `AGENTSEARCH_MAX_TOTAL_ATOMIC` | Session spend cap in USDC atomic units. `1000000` = $1.00 (the default). Alias: `POCKET_MAX_TOTAL_ATOMIC`. |
 | `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | Optional. Can only lower the per-call cap; default and maximum `5000` ($0.005). Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
-| `AGENTSEARCH_MODE` | Search only. Leave unset (or `free`) to keep search on the free relay. Set to `paid` to pay $0.005 per search call. A wallet key alone does **not** make search paid. |
+| `AGENTSEARCH_MODE` | Search only. Leave unset (or `free`) to keep search on the free tier (up to 25 searches/day per IP). Set to `paid` to pay $0.005 per search call. A wallet key alone does **not** make search paid. |
 
 A wallet key enables `agentsearch_extract` and `agentsearch_render` at $0.005 per call. Search stays free until you also set `"AGENTSEARCH_MODE": "paid"`. Leave `autoApprove` empty so Cline asks before a tool runs; the caps above are what limit spend if it does not.
 
@@ -92,4 +92,4 @@ Fund the wallet with a little USDC **on Base** (for example $1, enough for 200 c
 
 ## Optional self-hosted API
 
-To use your own AgentSearch-compatible API and skip payment, set `AGENTSEARCH_BASE_URL` (no trailing slash). It takes precedence over the free relay and the paid portal. `AGENTSEARCH_API_KEY` is an optional bearer token. The free relay URL serves search only; do not point `AGENTSEARCH_BASE_URL` at it if you need extract or render.
+To use your own AgentSearch-compatible API and skip payment, set `AGENTSEARCH_BASE_URL` (no trailing slash). It takes precedence over the free tier and the paid portal. `AGENTSEARCH_API_KEY` is an optional bearer token. The free tier serves search only; do not point `AGENTSEARCH_BASE_URL` at the free-tier host if you need extract or render.

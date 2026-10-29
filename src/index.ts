@@ -28,8 +28,8 @@ async function main(): Promise<void> {
         : search === "pocket"
           ? "search: pay-per-call via Pocket portal (x402, USDC on Base) because AGENTSEARCH_MODE opts in; extract/render pay per call too"
           : hasWalletKey()
-            ? "search: free AgentSearch relay (up to 25 searches/day per IP, subject to shared daily capacity; set AGENTSEARCH_MODE=paid to pay for search); extract/render: pay-per-call via Pocket portal (x402, USDC on Base)"
-            : "no wallet key or AGENTSEARCH_BASE_URL: search uses the free AgentSearch relay (up to 25 searches/day per IP, subject to shared daily capacity); extract/render need a wallet key";
+            ? "search: AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity; set AGENTSEARCH_MODE=paid to pay for search); extract/render: pay-per-call via Pocket portal (x402, USDC on Base)"
+            : "no wallet key or AGENTSEARCH_BASE_URL: search uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity); extract/render need a wallet key";
   console.error(
     `agentsearch-mcp listening on stdio (${base}; reviews=${loadReviewsConfig().baseUrl})`
   );

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.6
+
+### Changed
+- Docs/wording only, no behavior change. Tool descriptions, the startup line and limit messages say "AgentSearch free tier" instead of "free AgentSearch relay".
+- README: Modes table states search stays free with only a wallet key (paid search needs `AGENTSEARCH_MODE=paid`); new Cline section (`cline_mcp_settings.json` entry and `cline mcp add` one-liner).
+
 ## 1.3.5
 
 ### Changed

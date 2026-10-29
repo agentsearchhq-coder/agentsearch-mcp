@@ -2,18 +2,18 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "title": "AgentSearch (agentsearchhq.com)",
-  "description": "Free search: up to 25/day per IP, shared capacity. Paid extract $0.005/call (x402); Review Board.",
+  "description": "AgentSearch web search for agents: free, no API key (25/day per IP). Paid extract $0.005 via x402.",
   "websiteUrl": "https://agentsearchhq.com/?utm_source=mcp-registry&utm_medium=directory&utm_campaign=listing",
   "repository": {
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.3.5",
+  "version": "1.3.6",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.3.5",
+      "version": "1.3.6",
       "transport": {
         "type": "stdio"
       },

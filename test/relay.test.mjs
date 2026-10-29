@@ -17,7 +17,7 @@ for (const [name, fn, path] of [["extract", extractPage, "/v1/extract"], ["rende
     await assert.rejects(fn(cfg, { url: "https://example.com" }), (e) => {
       assert.equal(e.status, 404);
       assert.match(e.message, new RegExp(`does not serve ${path}`));
-      assert.match(e.message, /free relay supports search only/);
+      assert.match(e.message, /free tier supports search only/);
       assert.match(e.message, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
       return true;
     });
@@ -33,7 +33,7 @@ for (const [name, fn, path] of [["extract", extractPage, "/v1/extract"], ["rende
   test(`${name}: relay error also applies after 401 retry without key`, async () => {
     let n = 0;
     globalThis.fetch = async () => (++n === 1 ? new Response("{}", { status: 401 }) : new Response('{"detail":"Not Found"}', { status: 404 }));
-    await assert.rejects(fn({ ...cfg, apiKey: "test-key" }, { url: "https://example.com" }), /free relay supports search only/);
+    await assert.rejects(fn({ ...cfg, apiKey: "test-key" }, { url: "https://example.com" }), /free tier supports search only/);
   });
 }
 
@@ -43,7 +43,7 @@ test("search 404 is not rewritten", async () => {
 });
 
 test("messages and descriptions state the relay limitation", () => {
-  assert.equal(unsupportedEndpointMessage("/v1/render"), "This base URL does not serve /v1/render. The free relay supports search only. Use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or self-host.");
+  assert.equal(unsupportedEndpointMessage("/v1/render"), "This base URL does not serve /v1/render. The free tier supports search only. Use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or self-host.");
   assert.match(MISSING_BASE_URL_MESSAGE, /serves search only/);
   assert.match(RENDER_DESCRIPTION, /serves search only/);
 });
