@@ -2,7 +2,7 @@
 
 MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**. It has two groups of tools:
 
-- **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the free AgentSearch relay (`https://relay.agentsearchhq.com/v1/search`): **up to 25 searches/day per IP, subject to shared daily capacity**, search only, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
+- **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the AgentSearch free tier (`https://relay.agentsearchhq.com/v1/search`): **up to 25 searches/day per IP, subject to shared daily capacity**, search only, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
 - **Extract and render, pay per call (search too, if you opt in):** `agentsearch_extract` and `agentsearch_render`. Add a wallet key and these go through the [Pocket Network Agentic Portal](https://agent.pocket.network) and pay in USDC on Base (**$0.005 per extract call**) over [x402](https://x402.org). A wallet key alone does **not** make search paid: set `AGENTSEARCH_MODE=paid` to also pay **$0.005 per search call**. No account, no API key, no ETH for gas. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
 - **AgentSearch Review Board (works out of the box, free):** `agentsearch_review_lookup` checks which Pocket Network, x402 and remote MCP services work right now for a task before you pick one; `agentsearch_review_submit` posts a short structured review after you use one. No configuration or key needed; the board is at https://reviews.agentsearchhq.com.
 
@@ -14,8 +14,8 @@ npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immedi
 
 | Config | `agentsearch_web_search` | `agentsearch_extract` / `agentsearch_render` |
 |--------|--------------------------|-----------------------------------------------|
-| Nothing set (default) | Free relay, up to 25 searches/day per IP, subject to shared daily capacity | Paid tools: return a message with how to add a wallet; no network call |
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Still free (relay) | Paid via the Pocket portal (extract $0.005 per call) |
+| Nothing set (default) | Free tier, up to 25 searches/day per IP, subject to shared daily capacity | Paid tools: return a message with how to add a wallet; no network call |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Still free (free tier, up to 25 searches/day per IP) | Paid via the Pocket portal (extract $0.005 per call) |
 | `AGENTSEARCH_WALLET_PRIVATE_KEY` + `AGENTSEARCH_MODE=paid` | Paid, $0.005 per call via the Pocket portal | Paid via the Pocket portal |
 | `AGENTSEARCH_BASE_URL` (takes precedence) | Your self-hosted API | Your self-hosted API |
 
@@ -106,7 +106,7 @@ Binary: `agentsearch-mcp` → `dist/index.js`
 
 | Variable | Required | Notes |
 |----------|----------|--------|
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` | no | Without it, search uses the free relay (up to 25 searches/day per IP, subject to shared daily capacity) and extract/render are unavailable. Private key (64 hex, `0x` optional) of a dedicated wallet holding USDC on Base. Enables paid mode. Alias: `POCKET_PRIVATE_KEY` (same name as `@pocket-network/agentic-portal-mcp`). |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` | no | Without it, search uses the free tier (up to 25 searches/day per IP, subject to shared daily capacity) and extract/render are unavailable. Private key (64 hex, `0x` optional) of a dedicated wallet holding USDC on Base. Enables paid mode. Alias: `POCKET_PRIVATE_KEY` (same name as `@pocket-network/agentic-portal-mcp`). |
 | `AGENTSEARCH_MAX_TOTAL_ATOMIC` | no | Session spend cap in USDC atomic units. Default `1000000` ($1.00). Alias: `POCKET_MAX_TOTAL_ATOMIC`. |
 | `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | no | Lower per-call cap; default and maximum `5000` ($0.005). Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
 | `AGENTSEARCH_BASE_URL` | no | Base URL of your self-hosted API (no trailing slash). When set, search/extract/render use it instead of the paid portal. |
@@ -147,6 +147,33 @@ Self-hosted instead (no payment), with an optional API key:
   "AGENTSEARCH_API_KEY": "your-key-here"
 }
 ```
+
+---
+
+## Cline
+
+Add this to `cline_mcp_settings.json` (VS Code: MCP Servers icon → Configure → Configure MCP Servers). Free search, no key:
+
+```json
+{
+  "mcpServers": {
+    "agentsearch": {
+      "command": "npx",
+      "args": ["-y", "@agentsearchhq/agentsearch-mcp"],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+Or with the Cline CLI:
+
+```bash
+cline mcp add agentsearch --yes -- npx -y @agentsearchhq/agentsearch-mcp
+```
+
+For paid Extract/Render, add an `env` block with `AGENTSEARCH_WALLET_PRIVATE_KEY` as in the Cursor example; search stays free unless you also set `AGENTSEARCH_MODE=paid`. Full guide: [Add free web search to Cline with MCP](https://agentsearchhq.com/blog/add-web-search-to-cline-mcp).
 
 ---
 
