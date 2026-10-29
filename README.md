@@ -87,6 +87,8 @@ npx -y @agentsearchhq/agentsearch-mcp
 npm i @agentsearchhq/agentsearch-mcp
 ```
 
+Cline setup: [llms-install.md](llms-install.md).
+
 From a local checkout:
 
 ```bash
