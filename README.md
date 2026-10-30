@@ -228,7 +228,7 @@ Free web search needs no API key, wallet, or env vars. Edit Claude Desktop confi
 
 Restart Claude Desktop after saving. Full walkthrough: [Add web search to Claude Desktop with MCP](https://agentsearchhq.com/blog/add-web-search-to-claude-desktop-mcp).
 
-Prefer a one-click install? Download `agentsearch-mcp.mcpb` (Desktop Extension) from the [latest release](https://github.com/agentsearchhq-coder/agentsearch-mcp/releases/latest) and open it in Claude Desktop.
+Prefer a one-click install? Download the `.mcpb` Desktop Extension from the [latest release](https://github.com/agentsearchhq-coder/agentsearch-mcp/releases/latest) and open it in Claude Desktop.
 
 ### Optional: paid Extract/Render
 
