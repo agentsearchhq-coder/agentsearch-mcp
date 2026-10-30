@@ -209,10 +209,30 @@ claude mcp add agentsearch-paid \
 
 ## Claude Desktop
 
-Edit Claude Desktop config (`claude_desktop_config.json`):
+Free web search needs no API key, wallet, or env vars. Edit Claude Desktop config (`claude_desktop_config.json`):
 
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux (beta): `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "agentsearch": {
+      "command": "npx",
+      "args": ["-y", "@agentsearchhq/agentsearch-mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop after saving. Full walkthrough: [Add web search to Claude Desktop with MCP](https://agentsearchhq.com/blog/add-web-search-to-claude-desktop-mcp).
+
+Prefer a one-click install? Download `agentsearch-mcp.mcpb` (Desktop Extension) from the [latest release](https://github.com/agentsearchhq-coder/agentsearch-mcp/releases/latest) and open it in Claude Desktop.
+
+### Optional: paid Extract/Render
+
+Only needed for paid `extract` / `render` tools. Add a wallet key and a spend cap:
 
 ```json
 {
