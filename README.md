@@ -10,6 +10,8 @@ MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com
 npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immediately
 ```
 
+**Search, then read the page.** The usual agent loop is: free `agentsearch_web_search` → `agentsearch_extract` on the 1–2 best URLs (clean markdown, $0.005 each; $1 covers 200 calls) → `agentsearch_render` only for pages extract couldn't read (JavaScript apps). Guides: [Claude Code research workflow](https://agentsearchhq.com/blog/claude-code-web-research-workflow-mcp?utm_source=github&utm_medium=readme&utm_campaign=mcp), [n8n AI agent reading pages](https://agentsearchhq.com/blog/n8n-ai-agent-read-web-pages?utm_source=github&utm_medium=readme&utm_campaign=mcp), [LangChain (Python) search-then-read](https://agentsearchhq.com/blog/langchain-agent-search-then-read-page?utm_source=github&utm_medium=readme&utm_campaign=mcp).
+
 ### Modes
 
 | Config | `agentsearch_web_search` | `agentsearch_extract` / `agentsearch_render` |
