@@ -5,7 +5,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "MCP server: web search and page extract paid per call ($0.005 USDC on Base via x402) plus JS rendering, or self-hosted; free search up to 25/day per IP, plus the free AgentSearch Review Board",
+  "description": "MCP server for AI agents: free web search (no key, up to 25/day per IP), plus URL-to-markdown extract and headless JS render at $0.005/call via x402 (USDC on Base). Also the free AgentSearch Review Board.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -41,6 +41,11 @@
     "agentsearch",
     "web-search",
     "render",
+    "rag",
+    "web-scraping",
+    "markdown",
+    "url-to-markdown",
+    "web-extract",
     "headless-browser",
     "javascript-rendering",
     "reviews",
