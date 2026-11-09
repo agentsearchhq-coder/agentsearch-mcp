@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.7
+- Metadata only: MCP Registry and npm descriptions now name URL-to-markdown extract and JS render; npm keywords add web-extract, url-to-markdown, markdown, web-scraping, rag. README: search-then-read loop with Extract/Render guide links. No code or tool changes.
+
 ## 1.3.6
 
 ### Changed
