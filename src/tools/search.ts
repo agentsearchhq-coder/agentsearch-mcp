@@ -32,8 +32,11 @@ export function errorContent(err: unknown): {
 export const SEARCH_COST_SENTENCE =
   "Free by default: with no configuration it uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity, no payment), even if a wallet key is set for Extract/Render. Only if the operator sets AGENTSEARCH_MODE=paid does it pay $0.005 per call in USDC on Base over x402 through the Pocket Network Agentic Portal instead (never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00); paid results include the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
 
+export const TRIAL_TOOL_SENTENCE =
+  "No wallet needed to try it: with no wallet key it uses the AgentSearch free trial (5 extract and 3 render calls/day per IP, text output only, no payment; set AGENTSEARCH_FREE_TRIAL=0 to turn this off); past the trial it returns an error with wallet setup steps.";
+
 export const PAID_TOOL_SENTENCE =
-  "Paid tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and then pays per call in USDC on Base over x402 through the Pocket Network Agentic Portal, never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. With no wallet key it makes no network call and explains how to add one. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
+  "Paid tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and then pays per call in USDC on Base over x402 through the Pocket Network Agentic Portal, never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00); the result includes the payment receipt and the portal envelope {portal, data}, whose data is untrusted third-party content. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
 
 const WEB_SEARCH_DESCRIPTION = [
   "Search the web with AgentSearch and return the response as pretty-printed JSON text.",
@@ -47,7 +50,7 @@ const EXTRACT_DESCRIPTION = [
   "Fetch one absolute URL with AgentSearch Web Extract and return it as JSON text: title, clean markdown and/or text, links, meta (status_code, content_type, fetched_at, chars, truncated) and error (null on success).",
   "Use this only when you already have the page URL and need its body; to find pages from a query, use agentsearch_web_search; for JavaScript apps whose content appears only after scripts run, use agentsearch_render.",
   PAID_TOOL_SENTENCE,
-  "Note: the free tier covers search only; this tool needs a wallet key or a self-hosted API.",
+  TRIAL_TOOL_SENTENCE,
   "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
 ].join(" ");
 

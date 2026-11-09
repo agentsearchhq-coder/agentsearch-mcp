@@ -8,7 +8,7 @@ import { clampMaxResults, loadConfig, MISSING_BASE_URL_MESSAGE } from "../dist/c
 import { paidOnlyMessage } from "../dist/relay.js";
 import { SERVER_VERSION } from "../dist/version.js";
 
-const ENV_KEYS = ["AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
+const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
 let savedEnv;
 let realFetch;
 let calls;
@@ -82,7 +82,8 @@ test("direct mode POSTs {BASE}/v1/render with only provided fields", async () =>
   assert.equal(JSON.parse(res.content[0].text).title, "Example");
 });
 
-test("no wallet key and no AGENTSEARCH_BASE_URL: extract/render return the paid-tool message without a network call", async () => {
+test("AGENTSEARCH_FREE_TRIAL=0, no wallet key and no AGENTSEARCH_BASE_URL: extract/render return the paid-tool message without a network call", async () => {
+  process.env.AGENTSEARCH_FREE_TRIAL = "0";
   mockFetch(() => assert.fail("fetch must not be called for extract/render without a wallet"));
   const client = await connect();
   for (const [name, args] of [["agentsearch_render", { url: "https://example.com/" }], ["agentsearch_extract", { url: "https://example.com/" }]]) {
@@ -157,13 +158,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.3.7 across package metadata", () => {
+test("versions are consistent at 1.4.0 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.3.7");
+  assert.equal(pkg.version, "1.4.0");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);

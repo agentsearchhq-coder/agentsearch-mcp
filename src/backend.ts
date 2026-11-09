@@ -1,8 +1,8 @@
-/** Chooses how search/extract/render are served: self-hosted base URL, Pocket portal (x402), or the free relay (search only). */
+/** Chooses how search/extract/render are served: self-hosted base URL, Pocket portal (x402), or the free relay (search + extract/render free trial). */
 import { extractPage, hasBaseUrl, loadConfig, renderPage, webSearch, type ExtractRequest, type RenderRequest, type SearchRequest } from "./client.js";
 import { callPortal, hasWalletKey, PortalError, type PortalOperation } from "./pocket.js";
 import { AgentSearchHttpError } from "./client.js";
-import { paidOnlyMessage, relaySearch } from "./relay.js";
+import { FreeTrialUnavailableError, freeTrialEnabled, paidOnlyMessage, relaySearch, relayTrial } from "./relay.js";
 
 export type BackendMode = "self-hosted" | "pocket" | "free-relay";
 
@@ -26,7 +26,7 @@ export function invalidModeMessage(): string {
   return `${MODE_ENV_VAR} must be one of 'free', 'paid' or 'auto' (got ${JSON.stringify((process.env[MODE_ENV_VAR] ?? "").trim())}). No call was made.`;
 }
 
-/** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set. */
+/** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. */
 export function backendMode(op: PortalOperation = "search"): BackendMode {
   if (hasBaseUrl()) return "self-hosted";
   if (op === "search") {
@@ -63,7 +63,14 @@ export async function runOperation(
     }
     if (mode === "free-relay") {
       if (op === "search") return ok(await relaySearch(body as SearchRequest));
-      return fail(paidOnlyMessage(op === "extract" ? "agentsearch_extract" : "agentsearch_render"));
+      const tool = op === "extract" ? "agentsearch_extract" : "agentsearch_render";
+      if (!freeTrialEnabled()) return fail(paidOnlyMessage(tool));
+      try {
+        return ok(await relayTrial(op, body as ExtractRequest | RenderRequest));
+      } catch (e) {
+        if (e instanceof FreeTrialUnavailableError) return fail(paidOnlyMessage(tool));
+        throw e;
+      }
     }
     const clean: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(body)) if (v !== undefined && v !== null) clean[k] = v;
@@ -74,6 +81,7 @@ export async function runOperation(
       return fail(Object.keys(err.detail).length ? { message: err.message, ...err.detail } : err.message);
     }
     if (err instanceof AgentSearchHttpError && err.status === 429 && mode === "free-relay") return fail(err.body);
+    if (err instanceof AgentSearchHttpError && mode === "free-relay" && op !== "search") return fail(`Free trial ${op} failed (HTTP ${err.status}, not counted against the trial): ${err.body.slice(0, 500)}`);
     return fail(err instanceof Error ? err.message : String(err));
   }
 }

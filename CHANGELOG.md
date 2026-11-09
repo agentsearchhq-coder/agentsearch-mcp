@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+### Added
+- **No-wallet free trial for Extract and Render.** With no wallet key and no `AGENTSEARCH_BASE_URL`, `agentsearch_extract` (5 calls/day per IP) and `agentsearch_render` (3 calls/day per IP, text output only; screenshot/full_page are dropped with a note) call the AgentSearch free relay (`POST /v1/extract`, `POST /v1/render`) instead of returning a setup message. Past the trial the tool returns the relay's 429 reason plus wallet setup steps (https://agentsearchhq.com/wallet-setup). If the relay doesn't offer the trial (404/405), the old setup message is returned.
+- `AGENTSEARCH_FREE_TRIAL=0` turns the trial off (no-wallet extract/render then make no network call, as in 1.3.x).
+- Relay requests send `X-Agent-Client: agentsearch-mcp/<version>` (package name and version only) so free usage can be counted per client.
+
+### Unchanged
+- Wallet paid path (Pocket portal, x402, per-call and session caps), search modes, self-hosted mode and review tools.
+
 ## 1.3.7
 - Metadata only: MCP Registry and npm descriptions now name URL-to-markdown extract and JS render; npm keywords add web-extract, url-to-markdown, markdown, web-scraping, rag. README: search-then-read loop with Extract/Render guide links. No code or tool changes.
 

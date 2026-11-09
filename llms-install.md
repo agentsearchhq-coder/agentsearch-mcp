@@ -86,7 +86,7 @@ Set the wallet key and a session spend cap on the same `agentsearch` entry:
 | `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | Optional. Can only lower the per-call cap; default and maximum `5000` ($0.005). Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
 | `AGENTSEARCH_MODE` | Search only. Leave unset (or `free`) to keep search on the free tier (up to 25 searches/day per IP). Set to `paid` to pay $0.005 per search call. A wallet key alone does **not** make search paid. |
 
-A wallet key enables `agentsearch_extract` and `agentsearch_render` at $0.005 per call. Search stays free until you also set `"AGENTSEARCH_MODE": "paid"`. Leave `autoApprove` empty so Cline asks before a tool runs; the caps above are what limit spend if it does not.
+With no wallet key, `agentsearch_extract` and `agentsearch_render` use a small free trial (5 and 3 calls per day per IP; `AGENTSEARCH_FREE_TRIAL=0` turns it off). A wallet key enables them at $0.005 per call. Search stays free until you also set `"AGENTSEARCH_MODE": "paid"`. Leave `autoApprove` empty so Cline asks before a tool runs; the caps above are what limit spend if it does not.
 
 Fund the wallet with a little USDC **on Base** (for example $1, enough for 200 calls). Save the settings file again so Cline restarts the server with the new env.
 

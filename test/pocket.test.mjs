@@ -8,6 +8,7 @@ import { paidOnlyMessage } from "../dist/relay.js";
 import { resetSessionBudget, PORTAL_PAYEE, USDC_BASE, SETUP_MESSAGE } from "../dist/pocket.js";
 
 const ENV_KEYS = [
+  "AGENTSEARCH_FREE_TRIAL",
   "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_MAX_TOTAL_ATOMIC",
   "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC", "AGENTSEARCH_PORTAL_URL",
 ];
@@ -205,8 +206,9 @@ test("invalid key is reported without echoing it; base URL wins over key", async
   assert.deepEqual(calls, ["https://self.test/v1/search"]);
 });
 
-test("POCKET_PRIVATE_KEY alias works; no key -> paid-tool message", async () => {
+test("POCKET_PRIVATE_KEY alias works; no key + trial off -> paid-tool message", async () => {
   delete process.env.AGENTSEARCH_WALLET_PRIVATE_KEY;
+  process.env.AGENTSEARCH_FREE_TRIAL = "0";
   globalThis.fetch = async () => assert.fail("no network");
   const res = await call(await connect(), "agentsearch_render", { url: "https://example.com/" });
   assert.equal(res.content[0].text, paidOnlyMessage("agentsearch_render"));

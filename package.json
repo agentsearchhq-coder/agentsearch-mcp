@@ -1,11 +1,11 @@
 {
   "name": "@agentsearchhq/agentsearch-mcp",
-  "version": "1.3.7",
+  "version": "1.4.0",
   "mcpName": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "publishConfig": {
     "access": "public"
   },
-  "description": "MCP server for AI agents: free web search (no key, up to 25/day per IP), plus URL-to-markdown extract and headless JS render at $0.005/call via x402 (USDC on Base). Also the free AgentSearch Review Board.",
+  "description": "MCP server for AI agents: free web search (no key, up to 25/day per IP) plus a no-wallet free trial of URL-to-markdown extract and headless JS render, then $0.005/call via x402 (USDC on Base). Also the free AgentSearch Review Board.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

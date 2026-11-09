@@ -4,9 +4,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../dist/server.js";
 import { backendMode, searchMode } from "../dist/backend.js";
-import { FREE_RELAY_LIMIT_MESSAGE, FREE_RELAY_URL } from "../dist/relay.js";
+import { FREE_RELAY_LIMIT_MESSAGE, FREE_RELAY_URL, WALLET_SETUP_URL, freeTrialLimitMessage, paidOnlyMessage } from "../dist/relay.js";
 
-const ENV_KEYS = ["AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
+const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
 const KEY = "0x" + "11".repeat(32);
 let saved, realFetch, calls;
 beforeEach(() => {
@@ -135,6 +135,7 @@ test("AGENTSEARCH_MODE=paid without a wallet key: setup message, no network call
 
 test("invalid AGENTSEARCH_MODE: search errors without any network call; extract/render are unaffected", async () => {
   process.env.AGENTSEARCH_MODE = "bogus";
+  process.env.AGENTSEARCH_FREE_TRIAL = "0";
   mock(500, "should not be called");
   const client = await connect();
   const r = await client.callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
@@ -171,4 +172,85 @@ test("tool metadata: free-first search description, no relay hostname, annotatio
   assert.doesNotMatch(search.description, /Default mode: calls the Pocket Network Agentic Portal and PAYS/);
   assert.match(search.description, /up to 25 searches\/day per IP, subject to shared daily capacity/);
   assert.match(tools.find((x) => x.name === "agentsearch_extract").description, /Paid tool/);
+});
+
+// ---- 1.4.0: no-wallet extract/render free trial ----
+test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, client header) and returns the page", async () => {
+  mock(200, { url: "https://example.com/", title: "Example Domain", markdown: "hi", provider: "x", free_trial: { remaining_today: 4 } });
+  const r = await (await connect()).callTool({ name: "agentsearch_extract", arguments: { url: "https://example.com/" } });
+  assert.equal(r.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
+  assert.equal(calls[0].body.url, "https://example.com/");
+  assert.equal(calls[0].init.headers.authorization, undefined);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.4\.0$/);
+  const data = JSON.parse(r.content[0].text);
+  assert.equal(data.title, "Example Domain");
+  assert.equal(data.free_trial.remaining_today, 4);
+  assert.equal("provider" in data, false);
+  assert.match(data.note, /Free trial call/);
+});
+
+test("no wallet: render trial drops screenshot/full_page and says so", async () => {
+  mock(200, { url: "https://example.com/", title: "Example Domain", markdown: "hi" });
+  const r = await (await connect()).callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/", screenshot: true, full_page: true, formats: ["text"] } });
+  assert.equal(r.isError, undefined);
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/render`);
+  assert.equal("screenshot" in calls[0].body, false);
+  assert.equal("full_page" in calls[0].body, false);
+  assert.deepEqual(calls[0].body.formats, ["text"]);
+  assert.match(JSON.parse(r.content[0].text).note, /Screenshots are not part of the free trial/);
+});
+
+test("free trial 429 returns the limit message with wallet setup and the relay reason", async () => {
+  mock(429, { error: { code: "free_trial_limit_reached", scope: "per_ip", message: "Free limit reached: 5 free extract calls per IP per day" } });
+  const r = await (await connect()).callTool({ name: "agentsearch_extract", arguments: { url: "https://example.com/" } });
+  assert.equal(r.isError, true);
+  assert.match(r.content[0].text, /Free trial limit reached for agentsearch_extract/);
+  assert.ok(r.content[0].text.includes(WALLET_SETUP_URL));
+  assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
+  assert.match(r.content[0].text, /5 free extract calls per IP/);
+  assert.match(freeTrialLimitMessage("agentsearch_render"), /3 render calls\/day per IP/);
+});
+
+test("relay without the trial (404) falls back to the setup message", async () => {
+  mock(404, { detail: "Not Found", error: { code: "search_only_relay" } });
+  const r = await (await connect()).callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
+  assert.equal(r.isError, true);
+  assert.equal(r.content[0].text, paidOnlyMessage("agentsearch_render"));
+});
+
+test("free trial 400 (disallowed URL) is an error that says it was not counted", async () => {
+  mock(400, { error: { code: "URL_NOT_ALLOWED", message: "Private addresses are not allowed." } });
+  const r = await (await connect()).callTool({ name: "agentsearch_extract", arguments: { url: "http://10.0.0.1/" } });
+  assert.equal(r.isError, true);
+  assert.match(r.content[0].text, /HTTP 400, not counted/);
+  assert.match(r.content[0].text, /URL_NOT_ALLOWED/);
+});
+
+test("AGENTSEARCH_FREE_TRIAL=0 makes no network call for extract/render; search still free", async () => {
+  process.env.AGENTSEARCH_FREE_TRIAL = "off";
+  mock(200, { results: [] });
+  const c = await connect();
+  const r = await c.callTool({ name: "agentsearch_extract", arguments: { url: "https://example.com/" } });
+  assert.equal(r.content[0].text, paidOnlyMessage("agentsearch_extract"));
+  assert.match(r.content[0].text, /turned off/);
+  assert.equal(calls.length, 0);
+  await c.callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/search`);
+});
+
+test("wallet key: extract/render never touch the relay trial (paid path unchanged)", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
+  mock(500, "portal down");
+  const c = await connect();
+  await c.callTool({ name: "agentsearch_render", arguments: { url: "https://example.com/" } });
+  for (const x of calls) assert.ok(x.url.startsWith("https://agent.pocket.network/"), x.url);
+});
+
+test("self-hosted base URL wins over the trial", async () => {
+  process.env.AGENTSEARCH_BASE_URL = "https://self.test";
+  mock(200, { title: "S" });
+  await (await connect()).callTool({ name: "agentsearch_extract", arguments: { url: "https://example.com/" } });
+  assert.equal(calls[0].url, "https://self.test/v1/extract");
 });

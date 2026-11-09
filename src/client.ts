@@ -39,11 +39,11 @@ export interface RenderRequest {
 }
 
 export const MISSING_BASE_URL_MESSAGE =
-  "AGENTSEARCH_BASE_URL is not set, so agentsearch_web_search, agentsearch_extract and agentsearch_render are unavailable. Set AGENTSEARCH_BASE_URL to the base URL of your self-hosted AgentSearch-compatible API (no trailing slash) in this MCP server's env and restart it. The free relay (https://relay.agentsearchhq.com) serves search only; agentsearch_extract and agentsearch_render need paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or a self-hosted API. The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without it.";
+  "AGENTSEARCH_BASE_URL is not set, so agentsearch_web_search, agentsearch_extract and agentsearch_render are unavailable. Set AGENTSEARCH_BASE_URL to the base URL of your self-hosted AgentSearch-compatible API (no trailing slash) in this MCP server's env and restart it. With AGENTSEARCH_BASE_URL unset, search uses the free tier and agentsearch_extract/agentsearch_render use the free trial or paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY). The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without it.";
 
 /** Error for a base URL (e.g. the free relay) that does not serve /v1/extract or /v1/render. */
 export function unsupportedEndpointMessage(path: "/v1/extract" | "/v1/render"): string {
-  return `This base URL does not serve ${path}. The free tier supports search only. Use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY) or self-host.`;
+  return `This base URL does not serve ${path}. Unset AGENTSEARCH_BASE_URL to use the free trial, use paid mode (AGENTSEARCH_WALLET_PRIVATE_KEY), or self-host.`;
 }
 
 function isNotFoundDetail(text: string): boolean {
