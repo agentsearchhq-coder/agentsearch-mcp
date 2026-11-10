@@ -12,7 +12,7 @@ const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BAS
   "AGENTSEARCH_MAX_TOTAL_ATOMIC", "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC",
   "AGENTSEARCH_PORTAL_URL", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_X402_DIRECT_URL", "AGENTSEARCH_PAYMENT_ROUTE"];
 const API = "https://api.agentsearchhq.com";
-const PRICES = { search: "8000", extract: "7000", render: "10000" };
+const PRICES = { search: "8000", extract: "7000", render: "10000", search_and_read: "15000" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
 let saved, realFetch, calls, key;
 
@@ -46,13 +46,15 @@ async function connect() {
 const call = async (client, name, args) => client.callTool({ name, arguments: args });
 const parse = (res) => JSON.parse(res.content[0].text);
 
-test("1.6.0 default: with a wallet key the paid rail is AgentSearch's direct x402 API; Pocket is opt-in", () => {
+test("1.7.0 default: with a wallet key the paid rail is AgentSearch's direct x402 API; Pocket is opt-in", () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   assert.equal(backendMode("extract"), "direct");
   assert.equal(backendMode("render"), "direct");
   assert.equal(backendMode("search"), "free-relay"); // search stays free by default
+  assert.equal(backendMode("search_and_read"), "direct");
   process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
   assert.equal(backendMode("extract"), "pocket");
+  assert.equal(backendMode("search_and_read"), "pocket"); // refused later as direct-only
   delete process.env.AGENTSEARCH_PAYMENT_ROUTE;
   process.env.AGENTSEARCH_X402_DIRECT = "0"; // 1.5.0 switch still selects Pocket
   assert.equal(backendMode("extract"), "pocket");
@@ -95,19 +97,19 @@ test("direct opt-in swaps only the paid rail; search stays free unless AGENTSEAR
   assert.equal(backendMode("search"), "self-hosted");
 });
 
-for (const op of ["search", "extract", "render"]) {
+for (const op of ["search", "extract", "render", "search_and_read"]) {
   test(`direct ${op}: 402 -> signed EIP-3009 to AgentSearch payee for ${PRICES[op]} -> 200 with receipt`, async () => {
     // 1.6.0: no route variable needed, direct is the default paid route.
     process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
     const payer = privateKeyToAccount(key).address; let signed;
     mockApi({ op, paid: (p) => { signed = p; return okResult({ ok: op }, payer); } });
-    const tool = { search: "agentsearch_web_search", extract: "agentsearch_extract", render: "agentsearch_render" }[op];
-    const args = op === "search" ? { query: "q", max_results: 3 } : { url: "https://example.com", ...(op === "render" ? { formats: ["markdown"] } : {}) };
+    const tool = { search: "agentsearch_web_search", extract: "agentsearch_extract", render: "agentsearch_render", search_and_read: "agentsearch_search_and_read" }[op];
+    const args = op === "search" ? { query: "q", max_results: 3 } : op === "search_and_read" ? { query: "q", num_results: 3 } : { url: "https://example.com", ...(op === "render" ? { formats: ["markdown"] } : {}) };
     const res = await call(await connect(), tool, args);
     assert.equal(res.isError, undefined, res.content[0].text);
     assert.equal(calls.length, 2);
     assert.equal(calls[0].url, `${API}/x402/v1/${op}`);
-    assert.deepEqual(calls[1].body, op === "search" ? { query: "q", max_results: 3 } : { url: "https://example.com" });
+    assert.deepEqual(calls[1].body, op === "search" ? { query: "q", max_results: 3 } : op === "search_and_read" ? { query: "q", num_results: 3 } : { url: "https://example.com" });
     assert.equal(signed.payload.authorization.to.toLowerCase(), DIRECT_PAYEE.toLowerCase());
     assert.equal(signed.payload.authorization.value, PRICES[op]);
     const out = parse(res);
@@ -117,9 +119,9 @@ for (const op of ["search", "extract", "render"]) {
   });
 }
 
-test("direct refuses the Pocket payee, a price above $0.010, and a non-USDC asset (nothing signed)", async () => {
+test("direct refuses the Pocket payee, a price above $0.020, and a non-USDC asset (nothing signed)", async () => {
   process.env.AGENTSEARCH_X402_DIRECT = "1"; process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
-  for (const over of [{ payTo: PORTAL_PAYEE }, { amount: "10001" }, { asset: "0x" + "11".repeat(20) }, { network: "eip155:84532" }]) {
+  for (const over of [{ payTo: PORTAL_PAYEE }, { amount: "20001" }, { asset: "0x" + "11".repeat(20) }, { network: "eip155:84532" }]) {
     calls = [];
     mockApi({ op: "extract", over, paid: () => assert.fail("must not sign") });
     const res = await call(await connect(), "agentsearch_extract", { url: "https://example.com" });
@@ -170,4 +172,30 @@ test("direct URL must be https or localhost", async () => {
   globalThis.fetch = async () => assert.fail("no network call expected");
   const res = await call(await connect(), "agentsearch_extract", { url: "https://example.com" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /must be https/);
+});
+
+test("search_and_read is paid-only and direct-only: no key, pocket route, and self-hosted all refuse without signing", async () => {
+  globalThis.fetch = async () => assert.fail("no network call expected");
+  let res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  assert.equal(res.isError, true); assert.match(res.content[0].text, /wallet key/i);
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
+  res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  assert.equal(res.isError, true); assert.match(res.content[0].text, /direct x402 API/); assert.match(res.content[0].text, /not on Pocket/i);
+  delete process.env.AGENTSEARCH_PAYMENT_ROUTE;
+  process.env.AGENTSEARCH_BASE_URL = "https://self.example";
+  res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
+});
+
+test("search_and_read with a $0.010 per-call cap refuses and tells the user to raise it to 20000", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "10000";
+  mockApi({ op: "search_and_read", paid: () => assert.fail("must not pay") });
+  const res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /Raise the cap to 20000/);
+  assert.equal(calls.filter((c) => c.sig).length, 0);
+});
+
+test("no wallet key: search_and_read is not on the free relay", () => {
+  assert.equal(backendMode("search_and_read"), "free-relay");
 });

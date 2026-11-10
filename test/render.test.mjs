@@ -49,7 +49,7 @@ test("lists agentsearch_render alongside existing tools, read-only", async () =>
   const client = await connect();
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["agentsearch_extract", "agentsearch_render", "agentsearch_review_lookup", "agentsearch_review_submit", "agentsearch_web_search"]);
+  assert.deepEqual(names, ["agentsearch_extract", "agentsearch_render", "agentsearch_review_lookup", "agentsearch_review_submit", "agentsearch_search_and_read", "agentsearch_web_search"]);
   const render = tools.find((t) => t.name === "agentsearch_render");
   assert.equal(render.annotations?.readOnlyHint, true);
   assert.deepEqual(render.inputSchema.required, ["url"]);
@@ -160,13 +160,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.6.0 across package metadata", () => {
+test("versions are consistent at 1.7.0 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.6.0");
+  assert.equal(pkg.version, "1.7.0");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);
@@ -184,6 +184,7 @@ test("versions are consistent at 1.6.0 across package metadata", () => {
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.required, false);
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.default, undefined);
   assert.ok(manifest.tools.some((t) => t.name === "agentsearch_render"));
+  assert.ok(manifest.tools.some((t) => t.name === "agentsearch_search_and_read"));
 
   const published = ["README.md", "manifest.json", "server.json", "smithery.yaml", ".env.example", "package.json"];
   for (const file of published) {

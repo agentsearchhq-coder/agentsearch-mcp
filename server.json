@@ -8,19 +8,19 @@
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.6.0",
+  "version": "1.7.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "AGENTSEARCH_WALLET_PRIVATE_KEY",
-          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.007, render $0.010). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
+          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.007, render $0.010, search_and_read $0.015). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
           "isRequired": false,
           "isSecret": true,
           "format": "string"
@@ -41,7 +41,7 @@
         },
         {
           "name": "AGENTSEARCH_PAYMENT_ROUTE",
-          "description": "Paid route: direct (default since 1.6.0; AgentSearch's own x402 API on Base, search $0.008, extract $0.007, render $0.010) or pocket (Pocket Network Agentic Portal, $0.005 per call)",
+          "description": "Paid route: direct (default since 1.6.0; AgentSearch's own x402 API on Base, search $0.008, extract $0.007, render $0.010, search_and_read $0.015) or pocket (Pocket Network Agentic Portal, $0.005 per call)",
           "isRequired": false,
           "format": "string",
           "default": "direct"
@@ -61,7 +61,7 @@
         },
         {
           "name": "AGENTSEARCH_MAX_PER_CALL_ATOMIC",
-          "description": "Optional lower per-call cap in USDC atomic units (hard max 10000 = $0.010 on the default direct route, 5000 = $0.005 on the Pocket route)",
+          "description": "Optional lower per-call cap in USDC atomic units (hard max 20000 = $0.020 on the default direct route, 5000 = $0.005 on the Pocket route)",
           "isRequired": false,
           "format": "string"
         },

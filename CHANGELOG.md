@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.7.0
+
+### Added
+- **`agentsearch_search_and_read`:** search the live web and return the top pages as markdown in one paid call ($0.015 / 15000 atomic USDC) on AgentSearch's direct x402 API (`POST /x402/v1/search_and_read`). Charged only when at least one page has text. Inputs: `query`, optional `num_results` (default 3, max 5; `max_results` alias), `max_chars` (default 8000, max 20000), `render_fallback` (default false, at most one page). Direct-only and paid-only: not on the free relay, the Pocket route, or a self-hosted `AGENTSEARCH_BASE_URL`.
+
+### Changed
+- Direct per-call hard ceiling raised from $0.010 (`10000`) to **$0.020** (`20000`) so Search + Read is accepted, with a little headroom. `AGENTSEARCH_MAX_PER_CALL_ATOMIC` can still only lower the ceiling. A cap of `10000` now refuses `search_and_read` and says to raise it to `20000`, remove it, or use the Pocket route for the a la carte tools.
+
+### Unchanged
+- Search stays free by default. Extract/render free trial, Pocket route ($0.005 for search, extract and render), self-hosted mode and review tools are unchanged.
+
+
 ## 1.6.0
 
 ### Changed

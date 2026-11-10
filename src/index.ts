@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * AgentSearch MCP server — stdio transport.
- * Tools: agentsearch_web_search, agentsearch_extract, agentsearch_render,
+ * Tools: agentsearch_web_search, agentsearch_extract, agentsearch_render, agentsearch_search_and_read,
  *        agentsearch_review_lookup, agentsearch_review_submit
  */
 

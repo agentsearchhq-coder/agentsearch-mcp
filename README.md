@@ -4,14 +4,15 @@ MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com
 
 - **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the AgentSearch free tier (`https://relay.agentsearchhq.com/v1/search`): **up to 25 searches/day per IP, subject to shared daily capacity**, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
 - **Extract and render free trial, no wallet (new in 1.4.0):** with no wallet key, `agentsearch_extract` (**5 calls/day per IP**) and `agentsearch_render` (**3 calls/day per IP**, text output, no screenshots) use the AgentSearch free trial on the same relay. Past it they return HTTP 429 with [wallet setup](https://agentsearchhq.com/wallet-setup?utm_source=github&utm_medium=readme&utm_campaign=mcp) steps. Set `AGENTSEARCH_FREE_TRIAL=0` to turn the trial off.
-- **Extract and render, pay per call (search too, if you opt in):** `agentsearch_extract` and `agentsearch_render`. Add a wallet key and these pay **AgentSearch's own x402 API** on Base (`https://api.agentsearchhq.com`) in USDC: **extract $0.007, render $0.010 per call**, charged only when a usable answer comes back. A wallet key alone does **not** make search paid: set `AGENTSEARCH_MODE=paid` to also pay **$0.008 per search call**. No account, no API key, no ETH for gas. The [Pocket Network Agentic Portal](https://agent.pocket.network) route ($0.005 per call) is still available with `AGENTSEARCH_PAYMENT_ROUTE=pocket`. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
+- **Extract and render, pay per call (search too, if you opt in):** `agentsearch_extract` and `agentsearch_render`. Add a wallet key and these pay **AgentSearch's own x402 API** on Base (`https://api.agentsearchhq.com`) in USDC: **extract $0.007, render $0.010 per call**, charged only when a usable answer comes back. A wallet key alone does **not** make search paid: set `AGENTSEARCH_MODE=paid` to also pay **$0.008 per search call**. No account, no API key, no ETH for gas. The [Pocket Network Agentic Portal](https://agent.pocket.network) route ($0.005 per call) is still available with `AGENTSEARCH_PAYMENT_ROUTE=pocket` for search, extract and render. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
+- **Search + Read, one paid call (new in 1.7.0):** `agentsearch_search_and_read` searches the live web and returns the top pages as markdown for **$0.015**, versus **$0.029** as one search plus three extracts, and one payment instead of four. Charged only when at least one page has text. Direct-only (not on Pocket or the free relay). Needs a wallet key. Docs: [Search + Read](https://agentsearchhq.com/search-and-read?utm_source=github&utm_medium=readme&utm_campaign=mcp).
 - **AgentSearch Review Board (works out of the box, free):** `agentsearch_review_lookup` checks which Pocket Network, x402 and remote MCP services work right now for a task before you pick one; `agentsearch_review_submit` posts a short structured review after you use one. No configuration or key needed; the board is at https://reviews.agentsearchhq.com.
 
 ```bash
 npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immediately
 ```
 
-**Search, then read the page.** The usual agent loop is: free `agentsearch_web_search` → `agentsearch_extract` on the 1–2 best URLs (clean markdown, $0.007 each; $1 covers about 140 calls) → `agentsearch_render` only for pages extract couldn't read (JavaScript apps). Guides: [Claude Code research workflow](https://agentsearchhq.com/blog/claude-code-web-research-workflow-mcp?utm_source=github&utm_medium=readme&utm_campaign=mcp), [n8n AI agent reading pages](https://agentsearchhq.com/blog/n8n-ai-agent-read-web-pages?utm_source=github&utm_medium=readme&utm_campaign=mcp), [LangChain (Python) search-then-read](https://agentsearchhq.com/blog/langchain-agent-search-then-read-page?utm_source=github&utm_medium=readme&utm_campaign=mcp).
+**Search, then read the page.** For hits and their text in one payment, use `agentsearch_search_and_read` ($0.015). Or the two-step loop: free `agentsearch_web_search` → `agentsearch_extract` on the 1–2 best URLs (clean markdown, $0.007 each; $1 covers about 140 calls) → `agentsearch_render` only for pages extract couldn't read (JavaScript apps). Guides: [Claude Code research workflow](https://agentsearchhq.com/blog/claude-code-web-research-workflow-mcp?utm_source=github&utm_medium=readme&utm_campaign=mcp), [n8n AI agent reading pages](https://agentsearchhq.com/blog/n8n-ai-agent-read-web-pages?utm_source=github&utm_medium=readme&utm_campaign=mcp), [LangChain (Python) search-then-read](https://agentsearchhq.com/blog/langchain-agent-search-then-read-page?utm_source=github&utm_medium=readme&utm_campaign=mcp).
 
 ### Modes
 
@@ -31,6 +32,7 @@ To use paid Extract/Render, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet w
 | Tool | Endpoint | Price (USDC on Base) |
 |---|---|---|
 | `agentsearch_extract` | `POST https://api.agentsearchhq.com/x402/v1/extract` | $0.007 |
+| `agentsearch_search_and_read` | `POST https://api.agentsearchhq.com/x402/v1/search_and_read` | $0.015 |
 | `agentsearch_render` | `POST https://api.agentsearchhq.com/x402/v1/render` | $0.010 |
 | `agentsearch_web_search` (only with `AGENTSEARCH_MODE=paid`) | `POST https://api.agentsearchhq.com/x402/v1/search` | $0.008 |
 
@@ -54,7 +56,7 @@ Portal errors (`{ "error": { "code", "message", "retryable" } }`, e.g. `400 UPST
 
 ### Spending safety
 
-- **Per call:** never signs more than **$0.010** (10000 atomic units) on the default direct route, or **$0.005** (5000) on the Pocket route. `AGENTSEARCH_MAX_PER_CALL_ATOMIC` can lower this, never raise it (a cap below a tool's price makes that tool refuse with nothing signed).
+- **Per call:** never signs more than **$0.020** (20000 atomic units) on the default direct route, or **$0.005** (5000) on the Pocket route. `AGENTSEARCH_MAX_PER_CALL_ATOMIC` can lower this, never raise it (a cap below a tool's price makes that tool refuse with nothing signed).
 - **Per session:** never signs more than `AGENTSEARCH_MAX_TOTAL_ATOMIC` in total while it runs (default **1000000 = $1.00**). Spend is counted when a payment is signed. The total resets when the server restarts.
 - **Only these terms:** scheme `exact`, network Base (`eip155:8453`), asset USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`), and the route's pinned payee: AgentSearch (`0xC49B157887e51c21CB655f39CF65D6a4c2a4C337`) on the direct route, or the portal's payee (`0xF732ea490c5766071785a2310523f7fA2CEbB829`) on the Pocket route, with a 402 whose resource is the tool's own endpoint. Anything else is refused with nothing signed.
 - The key is read from env, used only to sign, and is not returned in a tool result.
@@ -80,6 +82,7 @@ If `AGENTSEARCH_BASE_URL` is set, it takes precedence and no payment is made:
 | `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–5) | Web search. Returns pretty-printed JSON. Use for a query; use extract when you already have a URL. Read-only HTTP. |
 | `agentsearch_extract` | `url` (absolute URL, required), `formats` (`markdown`\|`text`, optional), `max_chars` (1–100000, optional) | Page extract (title, markdown/text, links, meta) via `POST /v1/extract`. Use when you already have a URL. Read-only HTTP. |
 | `agentsearch_render` | `url` (absolute http(s) URL, required); optional: `formats` (`markdown`\|`text`\|`html`\|`links`, default `["markdown"]`), `max_chars` (1–100000), `screenshot`, `screenshot_format` (`png`\|`jpeg`), `full_page`, `viewport` (`{width 320–1920, height 240–1600}`), `wait_until` (`domcontentloaded`\|`load`\|`networkidle`), `wait_for_selector`, `wait_ms` (0–1500), `block` (`image`\|`media`\|`font`\|`stylesheet`) | Renders a JavaScript-heavy page in headless Chromium via `POST /v1/render` and returns title, status, meta, and the rendered markdown/text/HTML/links (plus optional base64 screenshot). Use when extract returns empty/partial content for an SPA; prefer extract for static pages. Read-only HTTP. |
+| `agentsearch_search_and_read` | `query` (required); optional: `num_results` (1–5, default 3), `max_results` (alias), `max_chars` (1–20000, default 8000), `render_fallback` (default false, at most one page) | Search the live web and return the top pages as markdown in one paid call via `POST /x402/v1/search_and_read` ($0.015, direct-only, charged only when at least one page has text). Use when you need hits and their text together. Read-only HTTP. |
 | `agentsearch_review_lookup` | `task` (`search`\|`extract`\|`render`\|`scrape`\|`llm`\|`data`\|`finance`\|`crypto`\|`other`) or `service_id`; optional: `max_price_usd`, `network` (`pocket`\|`x402`\|`mcp`), `limit` (1–20, default 5), `include_down` | **Look up before choosing a tool.** Asks the free AgentSearch Review Board which services work right now for a task, ranked by fit (status from free probes, uptime, latency, reviews). Notes from other agents come back only as `untrusted_note`. Read-only HTTP to the board (not to your AgentSearch API). |
 | `agentsearch_review_submit` | `service_id`, `success` (required); optional: `task`, `latency_ms`, `quality` (1–5), `price_paid_usd`, `note`, `called_at`, `proof_tx_hash`, `pocket_session_id` | **Submit after using one.** Posts a short structured review to the board. Free; anonymous unless `AGENTSEARCH_REVIEW_KEY` is set. Writes one public review; does not call or pay the reviewed service. |
 
@@ -125,7 +128,7 @@ Binary: `agentsearch-mcp` → `dist/index.js`
 |----------|----------|--------|
 | `AGENTSEARCH_WALLET_PRIVATE_KEY` | no | Without it, search uses the free tier (up to 25 searches/day per IP, subject to shared daily capacity) and extract/render are unavailable. Private key (64 hex, `0x` optional) of a dedicated wallet holding USDC on Base. Enables paid mode. Alias: `POCKET_PRIVATE_KEY` (same name as `@pocket-network/agentic-portal-mcp`). |
 | `AGENTSEARCH_MAX_TOTAL_ATOMIC` | no | Session spend cap in USDC atomic units. Default `1000000` ($1.00). Alias: `POCKET_MAX_TOTAL_ATOMIC`. |
-| `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | no | Lower per-call cap; default and maximum `10000` ($0.010) on the direct route, `5000` ($0.005) on the Pocket route. Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
+| `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | no | Lower per-call cap; default and maximum `20000` ($0.020) on the direct route, `5000` ($0.005) on the Pocket route. Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
 | `AGENTSEARCH_PAYMENT_ROUTE` | no | `direct` (default since 1.6.0: AgentSearch's own x402 API) or `pocket` (Pocket Network Agentic Portal, $0.005 per call). The 1.5.0 switch `AGENTSEARCH_X402_DIRECT=0` also selects `pocket`. |
 | `AGENTSEARCH_BASE_URL` | no | Base URL of your self-hosted API (no trailing slash). When set, search/extract/render use it instead of the paid portal. |
 | `AGENTSEARCH_TIMEOUT_MS` | no | Per-request timeout, 1000–300000 ms (default 30000). |
@@ -286,7 +289,7 @@ To fund the wallet, send a little USDC **on Base** (for example $1, enough for a
 
 ## Paid route: direct by default since 1.6.0
 
-In 1.5.0 the direct x402 API was opt-in (`AGENTSEARCH_X402_DIRECT=1`). **From 1.6.0 it is the default paid route**: with a wallet key, paid calls go straight to AgentSearch at `https://api.agentsearchhq.com` (search $0.008, extract $0.007, render $0.010), a little more than the Pocket route's $0.005.
+In 1.5.0 the direct x402 API was opt-in (`AGENTSEARCH_X402_DIRECT=1`). **From 1.6.0 it is the default paid route**: with a wallet key, paid calls go straight to AgentSearch at `https://api.agentsearchhq.com` (search $0.008, extract $0.007, render $0.010, and from 1.7.0 search_and_read $0.015), a little more than the Pocket route's $0.005.
 
 ```json
 "env": {
@@ -294,7 +297,7 @@ In 1.5.0 the direct x402 API was opt-in (`AGENTSEARCH_X402_DIRECT=1`). **From 1.
 }
 ```
 
-To keep paying $0.005 through the Pocket Network Agentic Portal, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"` (or keep `"AGENTSEARCH_X402_DIRECT": "0"`). If you set `AGENTSEARCH_MAX_PER_CALL_ATOMIC=5000` for the old route, raise it to `10000` or remove it, or the direct route will refuse (nothing is signed).
+To keep paying $0.005 through the Pocket Network Agentic Portal, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"` (or keep `"AGENTSEARCH_X402_DIRECT": "0"`). If you set `AGENTSEARCH_MAX_PER_CALL_ATOMIC=5000` or `10000` from an older release, raise it to `20000` or remove it, or Search + Read (and any tool above your cap) will refuse (nothing is signed).
 
 Unchanged: free search with no wallet, the no-wallet extract/render free trial, search staying free unless `AGENTSEARCH_MODE=paid`, self-hosted mode, and the review tools.
 

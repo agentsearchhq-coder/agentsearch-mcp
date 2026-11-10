@@ -12,10 +12,21 @@ jobs:
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
-      - name: Check npm has this version
+      - name: Wait until npm has this version
         run: |
           V=$(jq -r .version server.json)
-          npm view "@agentsearchhq/agentsearch-mcp@$V" version
+          echo "Waiting for @agentsearchhq/agentsearch-mcp@$V on the npm registry..."
+          # npm often 404s for 1–2 minutes after publish (this workflow failed at 6:45 PM and 9:26 PM ET Nov 9 for that reason, then succeeded on retry).
+          for i in $(seq 1 24); do
+            if npm view "@agentsearchhq/agentsearch-mcp@$V" version; then
+              echo "Found $V on npm (attempt $i)."
+              exit 0
+            fi
+            echo "Attempt $i/24: $V not on npm yet (E404 is expected just after publish). Retrying in 15s..."
+            sleep 15
+          done
+          echo "Timed out waiting for @agentsearchhq/agentsearch-mcp@$V on npm."
+          exit 1
       - name: Login (GitHub OIDC)
         run: ./mcp-publisher login github-oidc
       - name: Publish server.json

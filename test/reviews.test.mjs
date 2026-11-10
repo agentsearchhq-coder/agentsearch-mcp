@@ -117,7 +117,7 @@ test("submit surfaces board errors (e.g. 429) as MCP errors and validates input 
   assert.equal(calls.length, 1);
 });
 
-test("the stdio server starts without AGENTSEARCH_BASE_URL and lists all five tools", async () => {
+test("the stdio server starts without AGENTSEARCH_BASE_URL and lists all six tools", async () => {
   const { spawn } = await import("node:child_process");
   const env = { ...process.env };
   delete env.AGENTSEARCH_BASE_URL;
@@ -139,6 +139,6 @@ test("the stdio server starts without AGENTSEARCH_BASE_URL and lists all five to
   child.kill();
   assert.equal(exited, null, `server exited early: ${stderr}`);
   const list = out.split("\n").filter(Boolean).map((l) => JSON.parse(l)).find((m) => m.id === 2);
-  assert.deepEqual(list.result.tools.map((t) => t.name).sort(), ["agentsearch_extract", "agentsearch_render", "agentsearch_review_lookup", "agentsearch_review_submit", "agentsearch_web_search"]);
+  assert.deepEqual(list.result.tools.map((t) => t.name).sort(), ["agentsearch_extract", "agentsearch_render", "agentsearch_review_lookup", "agentsearch_review_submit", "agentsearch_search_and_read", "agentsearch_web_search"]);
   assert.match(stderr, /no wallet key or AGENTSEARCH_BASE_URL/);
 });

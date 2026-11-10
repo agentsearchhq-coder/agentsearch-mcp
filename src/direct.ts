@@ -1,9 +1,9 @@
 /**
  * Direct x402 route (the default paid route since 1.6.0; opt-in in 1.5.0): call AgentSearch's own x402 API on Base mainnet
- * (https://api.agentsearchhq.com/x402/v1/{search,extract,render}) instead of the Pocket portal.
+ * (https://api.agentsearchhq.com/x402/v1/{search,extract,render,search_and_read}) instead of the Pocket portal.
  *
  * Same safety model as pocket.ts: unpaid POST -> 402 with PAYMENT-REQUIRED -> every limit is checked
- * BEFORE signing (scheme exact, Base, USDC, pinned AgentSearch payee, per-call ceiling $0.010, session cap)
+ * BEFORE signing (scheme exact, Base, USDC, pinned AgentSearch payee, per-call ceiling $0.020, session cap)
  * -> retry once with PAYMENT-SIGNATURE -> 200 with the raw result and the receipt in PAYMENT-RESPONSE.
  * The API settles only after a successful answer; 400/502 and empty results are not charged.
  *
@@ -20,14 +20,16 @@ import {
   post, type PortalOperation, type PortalResult, readWalletKey, selectAccept, sessionBudget, USDC_BASE,
 } from "./pocket.js";
 
+export type DirectOperation = PortalOperation | "search_and_read";
+
 export const DIRECT_ENV_VAR = "AGENTSEARCH_X402_DIRECT";
 export const DEFAULT_DIRECT_URL = "https://api.agentsearchhq.com";
 /** AgentSearch's own payee for the direct API (published in /.well-known/x402 and the 402 terms). */
 export const DIRECT_PAYEE = "0xC49B157887e51c21CB655f39CF65D6a4c2a4C337";
-/** $0.010 in USDC atomic units: hard ceiling per direct call (render is $0.010, search $0.008, extract $0.007). */
-export const DIRECT_MAX_PER_CALL_ATOMIC = 10_000n;
+/** $0.020 in USDC atomic units: hard ceiling per direct call (search_and_read is $0.015, render $0.010, search $0.008, extract $0.007). */
+export const DIRECT_MAX_PER_CALL_ATOMIC = 20_000n;
 /** Published direct prices, for messages only (the 402 is authoritative, the ceiling is the guard). */
-export const DIRECT_PRICES_USD: Record<PortalOperation, string> = { search: "$0.008", extract: "$0.007", render: "$0.010" };
+export const DIRECT_PRICES_USD: Record<DirectOperation, string> = { search: "$0.008", extract: "$0.007", render: "$0.010", search_and_read: "$0.015" };
 
 /** True unless AGENTSEARCH_PAYMENT_ROUTE=pocket (or AGENTSEARCH_X402_DIRECT=0). An invalid route value is refused in runOperation. */
 export function directEnabled(): boolean {
@@ -37,7 +39,7 @@ export function directEnabled(): boolean {
 export const DIRECT_SETUP_MESSAGE = [
   "This paid call needs a wallet: no wallet key is configured (agentsearch_web_search is free by default and only pays when AGENTSEARCH_MODE=paid or auto).",
   "Set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, fund it with a little USDC on Base (no ETH needed), and restart the client.",
-  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.010 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00).`,
+  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render}, search_and_read ${DIRECT_PRICES_USD.search_and_read} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.020 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Search + Read is direct-only.`,
   "Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
   "Wallet setup takes about 2 minutes: https://agentsearchhq.com/wallet-setup",
 ].join(" ");
@@ -59,13 +61,15 @@ export function loadDirectSettings(): DirectSettings {
   if (!isSecureOrLocalUrl(baseUrl)) throw new PortalError("AGENTSEARCH_X402_DIRECT_URL must be https:// (http only for localhost). Nothing was signed.");
   const session = atomicEnv(["AGENTSEARCH_MAX_TOTAL_ATOMIC", "POCKET_MAX_TOTAL_ATOMIC"], DEFAULT_SESSION_CAP_ATOMIC);
   const perCall = atomicEnv(["AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC"], DIRECT_MAX_PER_CALL_ATOMIC);
-  // A per-call setting can only lower the hard $0.010 ceiling, never raise it.
+  // A per-call setting can only lower the hard $0.020 ceiling, never raise it.
   return { baseUrl, sessionCapAtomic: session, perCallCapAtomic: perCall < DIRECT_MAX_PER_CALL_ATOMIC ? perCall : DIRECT_MAX_PER_CALL_ATOMIC };
 }
 
-/** Only the fields the direct API reads: search {query, max_results 1-10}; extract/render {url}. */
-export function directBody(op: PortalOperation, body: Record<string, unknown>): { body: Record<string, unknown>; dropped: string[] } {
-  const keep = op === "search" ? ["query", "max_results"] : ["url"];
+/** Only the fields the direct API reads: search {query, max_results}; extract/render {url}; search_and_read {query, num_results, max_results, max_chars, render_fallback}. */
+export function directBody(op: DirectOperation, body: Record<string, unknown>): { body: Record<string, unknown>; dropped: string[] } {
+  const keep = op === "search" ? ["query", "max_results"]
+    : op === "search_and_read" ? ["query", "num_results", "max_results", "max_chars", "render_fallback"]
+    : ["url"];
   const out: Record<string, unknown> = {};
   const dropped: string[] = [];
   for (const [k, v] of Object.entries(body)) {
@@ -75,7 +79,7 @@ export function directBody(op: PortalOperation, body: Record<string, unknown>): 
   return { body: out, dropped };
 }
 
-export async function callDirect(op: PortalOperation, input: Record<string, unknown>): Promise<PortalResult & { dropped?: string[] }> {
+export async function callDirect(op: DirectOperation, input: Record<string, unknown>): Promise<PortalResult & { dropped?: string[] }> {
   const settings = loadDirectSettings();
   const key = readWalletKey();
   if (!key) throw new PortalError(DIRECT_SETUP_MESSAGE);
@@ -113,7 +117,7 @@ export async function callDirect(op: PortalOperation, input: Record<string, unkn
     chosen = selectAccept(required.accepts, ceiling, DIRECT_PAYEE, "AgentSearch's payee");
   } catch (e) {
     if (e instanceof PortalError && settings.perCallCapAtomic < DIRECT_MAX_PER_CALL_ATOMIC && ceiling === settings.perCallCapAtomic) {
-      throw new PortalError(`${e.message} Your per-call cap (AGENTSEARCH_MAX_PER_CALL_ATOMIC=${settings.perCallCapAtomic}) is below this route's price; since 1.6.0 paid calls go to AgentSearch's own x402 API (search $0.008, extract $0.007, render $0.010). Raise the cap to 10000, remove it, or set AGENTSEARCH_PAYMENT_ROUTE=pocket for the $0.005 Pocket route.`, e.detail);
+      throw new PortalError(`${e.message} Your per-call cap (AGENTSEARCH_MAX_PER_CALL_ATOMIC=${settings.perCallCapAtomic}) is below this route's price; since 1.7.0 paid calls go to AgentSearch's own x402 API (search $0.008, extract $0.007, render $0.010, search_and_read $0.015). Raise the cap to 20000, remove it, or set AGENTSEARCH_PAYMENT_ROUTE=pocket for the $0.005 Pocket route (search, extract and render only; search_and_read is direct-only).`, e.detail);
     }
     throw e;
   }
