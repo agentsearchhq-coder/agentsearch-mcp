@@ -8,7 +8,7 @@ import { clampMaxResults, loadConfig, MISSING_BASE_URL_MESSAGE } from "../dist/c
 import { paidOnlyMessage } from "../dist/relay.js";
 import { SERVER_VERSION } from "../dist/version.js";
 
-const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
+const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_PAYMENT_ROUTE", "AGENTSEARCH_X402_DIRECT"];
 let savedEnv;
 let realFetch;
 let calls;
@@ -24,6 +24,7 @@ function mockFetch(responder) {
 beforeEach(() => {
   savedEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
   for (const k of ENV_KEYS) delete process.env[k];
+  process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket"; // these tests cover the Pocket route (opt-in since 1.6.0)
   realFetch = globalThis.fetch;
   calls = [];
 });
@@ -90,9 +91,10 @@ test("AGENTSEARCH_FREE_TRIAL=0, no wallet key and no AGENTSEARCH_BASE_URL: extra
     const r = await client.callTool({ name, arguments: args });
     assert.equal(r.isError, true);
     assert.equal(r.content[0].text, paidOnlyMessage(name));
-    if (name === "agentsearch_extract") assert.match(r.content[0].text, /\$0\.005/);
-    else assert.doesNotMatch(r.content[0].text, /\$0\.005/);
-    assert.match(r.content[0].text, /Pocket Network Agentic Portal/);
+    // 1.6.0: the message leads with the default direct route and names Pocket as the opt-in route.
+    assert.match(r.content[0].text, /AgentSearch's own x402 API/);
+    assert.match(r.content[0].text, /extract \$0\.007, render \$0\.010/);
+    assert.match(r.content[0].text, /AGENTSEARCH_PAYMENT_ROUTE=pocket/);
     assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
   }
   assert.equal(calls.length, 0);
@@ -158,13 +160,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.5.0 across package metadata", () => {
+test("versions are consistent at 1.6.0 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.5.0");
+  assert.equal(pkg.version, "1.6.0");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);

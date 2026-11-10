@@ -2,32 +2,32 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.agentsearchhq-coder/agentsearch-mcp",
   "title": "AgentSearch (agentsearchhq.com)",
-  "description": "Free web search + extract/render free trial (no key), then $0.005/call via x402 on Base.",
+  "description": "Free web search + extract/render trial (no key), then pay per call via x402 on Base.",
   "websiteUrl": "https://agentsearchhq.com/?utm_source=mcp-registry&utm_medium=directory&utm_campaign=listing",
   "repository": {
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.5.0",
+  "version": "1.6.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "AGENTSEARCH_WALLET_PRIVATE_KEY",
-          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render ($0.005 per call) via the Pocket portal (x402). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
+          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.007, render $0.010). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
           "isRequired": false,
           "isSecret": true,
           "format": "string"
         },
         {
           "name": "AGENTSEARCH_MODE",
-          "description": "Search mode: free (default; free relay even with a wallet key), paid (pay $0.005 per search; needs a key) or auto (paid search when a key is set)",
+          "description": "Search mode: free (default; free relay even with a wallet key), paid (pay per search, $0.008 direct or $0.005 via Pocket; needs a key) or auto (paid search when a key is set)",
           "isRequired": false,
           "format": "string",
           "default": "free"
@@ -40,8 +40,15 @@
           "default": "1"
         },
         {
+          "name": "AGENTSEARCH_PAYMENT_ROUTE",
+          "description": "Paid route: direct (default since 1.6.0; AgentSearch's own x402 API on Base, search $0.008, extract $0.007, render $0.010) or pocket (Pocket Network Agentic Portal, $0.005 per call)",
+          "isRequired": false,
+          "format": "string",
+          "default": "direct"
+        },
+        {
           "name": "AGENTSEARCH_X402_DIRECT",
-          "description": "Set to 1 to pay AgentSearch's own x402 API on Base directly (extract $0.007, render $0.010, search $0.008 when AGENTSEARCH_MODE=paid) instead of the Pocket portal. Needs the wallet key; per-call ceiling $0.010",
+          "description": "Legacy 1.5.0 switch: 0 selects the Pocket route (same as AGENTSEARCH_PAYMENT_ROUTE=pocket). Direct is already the default since 1.6.0",
           "isRequired": false,
           "format": "string"
         },
@@ -54,7 +61,7 @@
         },
         {
           "name": "AGENTSEARCH_MAX_PER_CALL_ATOMIC",
-          "description": "Optional lower per-call cap (max and default 5000 = $0.005)",
+          "description": "Optional lower per-call cap in USDC atomic units (hard max 10000 = $0.010 on the default direct route, 5000 = $0.005 on the Pocket route)",
           "isRequired": false,
           "format": "string"
         },

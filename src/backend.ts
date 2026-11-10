@@ -1,7 +1,8 @@
-/** Chooses how search/extract/render are served: self-hosted base URL, Pocket portal (x402), or the free relay (search + extract/render free trial). */
+/** Chooses how search/extract/render are served: self-hosted base URL, AgentSearch's direct x402 API (default paid route since 1.6.0), Pocket portal (x402, AGENTSEARCH_PAYMENT_ROUTE=pocket), or the free relay (search + extract/render free trial). */
 import { extractPage, hasBaseUrl, loadConfig, renderPage, webSearch, type ExtractRequest, type RenderRequest, type SearchRequest } from "./client.js";
 import { callPortal, hasWalletKey, PortalError, type PortalOperation } from "./pocket.js";
 import { callDirect, directEnabled } from "./direct.js";
+import { invalidRouteMessage, paidRoute } from "./route.js";
 import { AgentSearchHttpError } from "./client.js";
 import { FreeTrialUnavailableError, freeTrialEnabled, paidOnlyMessage, relaySearch, relayTrial } from "./relay.js";
 
@@ -14,7 +15,7 @@ export type SearchMode = (typeof SEARCH_MODES)[number];
 /**
  * Search mode from AGENTSEARCH_MODE. Default "free": search uses the free relay even when a wallet key is set,
  * so a key exported for Extract/Render (or inherited from the parent shell) never silently makes search paid.
- * "paid": search pays $0.005 per call via the portal (needs a wallet key). "auto": legacy 1.3.0-1.3.4 behavior
+ * "paid": search pays per call over x402 (direct $0.008 by default, or $0.005 via Pocket; needs a wallet key). "auto": legacy 1.3.0-1.3.4 behavior
  * (paid search when a wallet key is set, else free). Returns "invalid" for an unrecognized value.
  */
 export function searchMode(): SearchMode | "invalid" {
@@ -30,7 +31,7 @@ export function invalidModeMessage(): string {
 /** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. */
 export function backendMode(op: PortalOperation = "search"): BackendMode {
   const m = paidBackend(op);
-  // AGENTSEARCH_X402_DIRECT=1 swaps the paid rail (Pocket portal) for AgentSearch's own x402 API; nothing else changes.
+  // Since 1.6.0 the paid rail is AgentSearch's own x402 API unless AGENTSEARCH_PAYMENT_ROUTE=pocket (or AGENTSEARCH_X402_DIRECT=0); nothing else changes.
   return m === "pocket" && directEnabled() ? "direct" : m;
 }
 
@@ -84,6 +85,7 @@ export async function runOperation(
     }
     const clean: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(body)) if (v !== undefined && v !== null) clean[k] = v;
+    if (paidRoute() === "invalid") return fail(invalidRouteMessage());
     if (mode === "direct") {
       const result = await callDirect(op, clean);
       return ok({ ...result, note: DIRECT_RESPONSE_NOTE });

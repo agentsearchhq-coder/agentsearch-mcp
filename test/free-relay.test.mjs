@@ -6,12 +6,13 @@ import { createServer } from "../dist/server.js";
 import { backendMode, searchMode } from "../dist/backend.js";
 import { FREE_RELAY_LIMIT_MESSAGE, FREE_RELAY_URL, WALLET_SETUP_URL, freeTrialLimitMessage, paidOnlyMessage } from "../dist/relay.js";
 
-const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"];
+const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_PAYMENT_ROUTE", "AGENTSEARCH_X402_DIRECT"];
 const KEY = "0x" + "11".repeat(32);
 let saved, realFetch, calls;
 beforeEach(() => {
   saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
   for (const k of ENV_KEYS) delete process.env[k];
+  process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket"; // these tests cover the Pocket route (opt-in since 1.6.0)
   realFetch = globalThis.fetch;
   calls = [];
 });
@@ -183,7 +184,7 @@ test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, c
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
   assert.equal(calls[0].body.url, "https://example.com/");
   assert.equal(calls[0].init.headers.authorization, undefined);
-  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.5\.0$/);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.6\.0$/);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.title, "Example Domain");
   assert.equal(data.free_trial.remaining_today, 4);

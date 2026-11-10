@@ -10,7 +10,7 @@ import { DIRECT_PAYEE, DIRECT_SETUP_MESSAGE } from "../dist/direct.js";
 
 const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY",
   "AGENTSEARCH_MAX_TOTAL_ATOMIC", "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC",
-  "AGENTSEARCH_PORTAL_URL", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_X402_DIRECT_URL"];
+  "AGENTSEARCH_PORTAL_URL", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_X402_DIRECT_URL", "AGENTSEARCH_PAYMENT_ROUTE"];
 const API = "https://api.agentsearchhq.com";
 const PRICES = { search: "8000", extract: "7000", render: "10000" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
@@ -46,12 +46,40 @@ async function connect() {
 const call = async (client, name, args) => client.callTool({ name, arguments: args });
 const parse = (res) => JSON.parse(res.content[0].text);
 
-test("default is unchanged: without AGENTSEARCH_X402_DIRECT the paid rail is Pocket", () => {
+test("1.6.0 default: with a wallet key the paid rail is AgentSearch's direct x402 API; Pocket is opt-in", () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
+  assert.equal(backendMode("extract"), "direct");
+  assert.equal(backendMode("render"), "direct");
+  assert.equal(backendMode("search"), "free-relay"); // search stays free by default
+  process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
   assert.equal(backendMode("extract"), "pocket");
+  delete process.env.AGENTSEARCH_PAYMENT_ROUTE;
+  process.env.AGENTSEARCH_X402_DIRECT = "0"; // 1.5.0 switch still selects Pocket
+  assert.equal(backendMode("extract"), "pocket");
+  process.env.AGENTSEARCH_PAYMENT_ROUTE = "direct"; // explicit route wins over the legacy switch
+  assert.equal(backendMode("extract"), "direct");
+});
+
+test("no wallet key: the default route does not change free search or the free trial", () => {
   assert.equal(backendMode("search"), "free-relay");
-  process.env.AGENTSEARCH_X402_DIRECT = "0";
-  assert.equal(backendMode("extract"), "pocket");
+  assert.equal(backendMode("extract"), "free-relay");
+  assert.equal(backendMode("render"), "free-relay");
+});
+
+test("invalid AGENTSEARCH_PAYMENT_ROUTE refuses paid calls without signing", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "bogus";
+  globalThis.fetch = async () => assert.fail("no network call expected");
+  const res = await call(await connect(), "agentsearch_extract", { url: "https://example.com" });
+  assert.equal(res.isError, true); assert.match(res.content[0].text, /AGENTSEARCH_PAYMENT_ROUTE must be/);
+});
+
+test("default route with an old $0.005 per-call cap refuses with a clear hint (nothing signed)", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "5000";
+  mockApi({ op: "extract", paid: () => assert.fail("must not pay") });
+  const res = await call(await connect(), "agentsearch_extract", { url: "https://example.com" });
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /AGENTSEARCH_PAYMENT_ROUTE=pocket/);
+  assert.equal(calls.filter((c) => c.sig).length, 0);
 });
 
 test("direct opt-in swaps only the paid rail; search stays free unless AGENTSEARCH_MODE=paid; base URL still wins", () => {
@@ -69,7 +97,8 @@ test("direct opt-in swaps only the paid rail; search stays free unless AGENTSEAR
 
 for (const op of ["search", "extract", "render"]) {
   test(`direct ${op}: 402 -> signed EIP-3009 to AgentSearch payee for ${PRICES[op]} -> 200 with receipt`, async () => {
-    process.env.AGENTSEARCH_X402_DIRECT = "1"; process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
+    // 1.6.0: no route variable needed, direct is the default paid route.
+    process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
     const payer = privateKeyToAccount(key).address; let signed;
     mockApi({ op, paid: (p) => { signed = p; return okResult({ ok: op }, payer); } });
     const tool = { search: "agentsearch_web_search", extract: "agentsearch_extract", render: "agentsearch_render" }[op];

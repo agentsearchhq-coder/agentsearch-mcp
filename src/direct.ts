@@ -1,5 +1,5 @@
 /**
- * Direct x402 mode (opt-in, AGENTSEARCH_X402_DIRECT=1): call AgentSearch's own x402 API on Base mainnet
+ * Direct x402 route (the default paid route since 1.6.0; opt-in in 1.5.0): call AgentSearch's own x402 API on Base mainnet
  * (https://api.agentsearchhq.com/x402/v1/{search,extract,render}) instead of the Pocket portal.
  *
  * Same safety model as pocket.ts: unpaid POST -> 402 with PAYMENT-REQUIRED -> every limit is checked
@@ -14,6 +14,7 @@ import { decodePaymentResponseHeader } from "@x402/core/http";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { isSecureOrLocalUrl } from "./client.js";
+import { paidRoute } from "./route.js";
 import {
   type Accept, atomicToUsd, BASE_NETWORK, DEFAULT_SESSION_CAP_ATOMIC, eqAddr, PortalError, portalErrorInfo,
   post, type PortalOperation, type PortalResult, readWalletKey, selectAccept, sessionBudget, USDC_BASE,
@@ -28,14 +29,17 @@ export const DIRECT_MAX_PER_CALL_ATOMIC = 10_000n;
 /** Published direct prices, for messages only (the 402 is authoritative, the ceiling is the guard). */
 export const DIRECT_PRICES_USD: Record<PortalOperation, string> = { search: "$0.008", extract: "$0.007", render: "$0.010" };
 
+/** True unless AGENTSEARCH_PAYMENT_ROUTE=pocket (or AGENTSEARCH_X402_DIRECT=0). An invalid route value is refused in runOperation. */
 export function directEnabled(): boolean {
-  return /^(1|true|yes|on)$/i.test(process.env[DIRECT_ENV_VAR]?.trim() ?? "");
+  return paidRoute() !== "pocket";
 }
 
 export const DIRECT_SETUP_MESSAGE = [
-  `${DIRECT_ENV_VAR}=1 is set, but this paid call needs a wallet: no wallet key is configured.`,
+  "This paid call needs a wallet: no wallet key is configured (agentsearch_web_search is free by default and only pays when AGENTSEARCH_MODE=paid or auto).",
   "Set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, fund it with a little USDC on Base (no ETH needed), and restart the client.",
-  `Direct x402 prices: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402).`,
+  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.010 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00).`,
+  "Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
+  "Wallet setup takes about 2 minutes: https://agentsearchhq.com/wallet-setup",
 ].join(" ");
 
 function atomicEnv(names: string[], fallback: bigint): bigint {
@@ -104,7 +108,15 @@ export async function callDirect(op: PortalOperation, input: Record<string, unkn
   if (ceiling <= 0n) {
     throw new PortalError(`Session spend cap reached: ${atomicToUsd(budget.spent)} of ${atomicToUsd(settings.sessionCapAtomic)} signed. Raise AGENTSEARCH_MAX_TOTAL_ATOMIC and restart to spend more. Nothing was signed.`);
   }
-  const chosen = selectAccept(required.accepts, ceiling, DIRECT_PAYEE, "AgentSearch's payee");
+  let chosen: Accept;
+  try {
+    chosen = selectAccept(required.accepts, ceiling, DIRECT_PAYEE, "AgentSearch's payee");
+  } catch (e) {
+    if (e instanceof PortalError && settings.perCallCapAtomic < DIRECT_MAX_PER_CALL_ATOMIC && ceiling === settings.perCallCapAtomic) {
+      throw new PortalError(`${e.message} Your per-call cap (AGENTSEARCH_MAX_PER_CALL_ATOMIC=${settings.perCallCapAtomic}) is below this route's price; since 1.6.0 paid calls go to AgentSearch's own x402 API (search $0.008, extract $0.007, render $0.010). Raise the cap to 10000, remove it, or set AGENTSEARCH_PAYMENT_ROUTE=pocket for the $0.005 Pocket route.`, e.detail);
+    }
+    throw e;
+  }
   const amount = BigInt(chosen.amount);
 
   // 3) Sign with the reference x402 client, restricted to the option chosen above.

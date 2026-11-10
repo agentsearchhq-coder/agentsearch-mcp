@@ -9,7 +9,7 @@ import { resetSessionBudget, PORTAL_PAYEE, USDC_BASE, SETUP_MESSAGE } from "../d
 
 const ENV_KEYS = [
   "AGENTSEARCH_FREE_TRIAL",
-  "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_MAX_TOTAL_ATOMIC",
+  "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_PAYMENT_ROUTE", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_MAX_TOTAL_ATOMIC",
   "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC", "AGENTSEARCH_PORTAL_URL",
 ];
 let saved, realFetch, calls, key;
@@ -48,6 +48,7 @@ const okEnvelope = (serviceId, data, payer) =>
 beforeEach(() => {
   saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
   for (const k of ENV_KEYS) delete process.env[k];
+  process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket"; // these tests cover the Pocket route (opt-in since 1.6.0)
   key = generatePrivateKey(); // throwaway, unfunded
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   process.env.AGENTSEARCH_MODE = "paid"; // 1.3.5: paid search is an explicit opt-in (a wallet key alone keeps search free)

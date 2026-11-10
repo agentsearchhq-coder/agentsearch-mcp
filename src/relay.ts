@@ -5,6 +5,7 @@
 import { AgentSearchHttpError, requestTimeoutMs, type ExtractRequest, type RenderRequest, type SearchRequest } from "./client.js";
 import { hasWalletKey } from "./pocket.js";
 import { SERVER_NAME, SERVER_VERSION } from "./version.js";
+import { PAID_ROUTE_SENTENCE } from "./route.js";
 
 export const FREE_RELAY_URL = "https://relay.agentsearchhq.com";
 export const FREE_RELAY_DAILY_LIMIT = 25;
@@ -25,14 +26,16 @@ const ADD_WALLET =
 
 export const FREE_RELAY_LIMIT_MESSAGE = [
   `Free search limit reached: the AgentSearch free tier allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
-  "Upgrade to paid search (plus agentsearch_extract and agentsearch_render): each search or extract call costs $0.005 in USDC on Base via the Pocket Network Agentic Portal (https://agent.pocket.network) over x402.",
+  "Upgrade to paid search (plus agentsearch_extract and agentsearch_render), paid per call in USDC on Base over x402.",
+  PAID_ROUTE_SENTENCE,
   ADD_WALLET,
   "Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
 ].join(" ");
 
 export function paidOnlyMessage(tool: "agentsearch_extract" | "agentsearch_render"): string {
   return [
-    `${tool} is a paid tool${tool === "agentsearch_extract" ? ": $0.005 per call" : ""} in USDC on Base, paid over x402 through the Pocket Network Agentic Portal (https://agent.pocket.network). No wallet is configured, so no call was made.`,
+    `${tool} is a paid tool (USDC on Base over x402). No wallet is configured, so no call was made.`,
+    PAID_ROUTE_SENTENCE,
     freeTrialEnabled()
       ? `The free tier covers agentsearch_web_search (up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity); the no-wallet ${tool === "agentsearch_extract" ? "extract" : "render"} free trial is not available from this relay right now.`
       : `The free tier covers agentsearch_web_search (up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity). The no-wallet extract/render free trial is turned off (${FREE_TRIAL_ENV_VAR}=0).`,
@@ -45,7 +48,7 @@ export function paidOnlyMessage(tool: "agentsearch_extract" | "agentsearch_rende
 /** Limit message when a wallet is already configured: only the search mode needs to change. */
 export const FREE_RELAY_LIMIT_MESSAGE_WITH_WALLET = [
   `Free search limit reached: the AgentSearch free tier allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
-  "A wallet key is configured, but search is in free mode (the default). To pay $0.005 per search call instead (capped per call and by AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00), set AGENTSEARCH_MODE=paid in the env block of this MCP server and restart the client.",
+  "A wallet key is configured, but search is in free mode (the default). To pay per search call instead ($0.008 on the default direct route, $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket; capped per call and by AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00), set AGENTSEARCH_MODE=paid in the env block of this MCP server and restart the client.",
 ].join(" ");
 
 /** Message when the relay's extract/render free trial is used up (HTTP 429). relayMessage is the relay's own reason, if any. */
@@ -54,7 +57,7 @@ export function freeTrialLimitMessage(tool: "agentsearch_extract" | "agentsearch
   return [
     `Free trial limit reached for ${tool}: the AgentSearch free trial allows ${FREE_TRIAL_DAILY_LIMITS[op]} ${op} calls/day per IP (resets 00:00 UTC), subject to shared daily capacity.`,
     relayMessage ? `Relay said: ${relayMessage.slice(0, 300)}` : "",
-    `Continue at $0.005/call via Pocket (USDC on Base, no account, no API key). Wallet setup takes about 2 minutes: ${WALLET_SETUP_URL}`,
+    `Continue with a wallet (USDC on Base, no account, no API key): ${op} costs ${op === "extract" ? "$0.007" : "$0.010"} per call on AgentSearch's own x402 API (the default), or $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket. Wallet setup takes about 2 minutes: ${WALLET_SETUP_URL}`,
     ADD_WALLET,
     "Spending is capped per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00).",
   ].filter(Boolean).join(" ");
