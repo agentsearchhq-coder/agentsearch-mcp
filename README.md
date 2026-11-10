@@ -272,6 +272,20 @@ To fund the wallet, send a little USDC **on Base** (for example $1, enough for 2
 
 ---
 
+## Direct x402 HTTP API (no MCP)
+
+Agents that speak x402 can also call AgentSearch directly over HTTP, without this MCP server. The API runs on Base mainnet at `https://api.agentsearchhq.com`:
+
+| Endpoint | Price (USDC) |
+|---|---|
+| `POST /x402/v1/search` | $0.008 |
+| `POST /x402/v1/extract` | $0.007 |
+| `POST /x402/v1/render` | $0.010 |
+
+Settlement goes through the Coinbase CDP facilitator, and a call is charged only after it returns a successful answer. Discovery: [`/.well-known/x402`](https://api.agentsearchhq.com/.well-known/x402). Docs and curl / `@x402/fetch` / Python examples: <https://agentsearchhq.com/docs/x402>.
+
+---
+
 ## License
 
 MIT
