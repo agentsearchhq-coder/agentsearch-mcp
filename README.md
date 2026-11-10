@@ -272,17 +272,28 @@ To fund the wallet, send a little USDC **on Base** (for example $1, enough for 2
 
 ---
 
-## Direct x402 HTTP API (no MCP)
+## Direct x402 (new in 1.5.0, opt-in)
 
-Agents that speak x402 can also call AgentSearch directly over HTTP, without this MCP server. The API runs on Base mainnet at `https://api.agentsearchhq.com`:
+AgentSearch also runs its own x402 API on Base mainnet at `https://api.agentsearchhq.com`. Set `AGENTSEARCH_X402_DIRECT=1` (with the wallet key) and the paid calls go straight to it instead of the Pocket portal:
 
-| Endpoint | Price (USDC) |
-|---|---|
-| `POST /x402/v1/search` | $0.008 |
-| `POST /x402/v1/extract` | $0.007 |
-| `POST /x402/v1/render` | $0.010 |
+| Tool | Endpoint | Price (USDC on Base) |
+|---|---|---|
+| `agentsearch_extract` | `POST /x402/v1/extract` | $0.007 |
+| `agentsearch_render` | `POST /x402/v1/render` | $0.010 |
+| `agentsearch_web_search` (only with `AGENTSEARCH_MODE=paid`) | `POST /x402/v1/search` | $0.008 |
 
-Settlement goes through the Coinbase CDP facilitator, and a call is charged only after it returns a successful answer. Discovery: [`/.well-known/x402`](https://api.agentsearchhq.com/.well-known/x402). Docs and curl / `@x402/fetch` / Python examples: <https://agentsearchhq.com/docs/x402>.
+```json
+"env": {
+  "AGENTSEARCH_WALLET_PRIVATE_KEY": "0x… (a new wallet holding a little USDC on Base)",
+  "AGENTSEARCH_X402_DIRECT": "1"
+}
+```
+
+- Nothing changes unless you set it: without `AGENTSEARCH_X402_DIRECT=1` the paid rail is still the Pocket portal, and search stays free unless `AGENTSEARCH_MODE=paid`.
+- Same guards as the portal path: the server signs only the `exact` scheme, USDC on Base, to AgentSearch's payee `0xC49B157887e51c21CB655f39CF65D6a4c2a4C337`, at most $0.010 per call (lower it with `AGENTSEARCH_MAX_PER_CALL_ATOMIC`) and at most `AGENTSEARCH_MAX_TOTAL_ATOMIC` per session (default $1.00).
+- The API settles only after a successful answer: invalid input, upstream failures and empty results are not charged.
+- Direct extract/render take only `url` (extra options such as `formats` or `screenshot` are dropped and listed under `dropped` in the result).
+- Without an MCP client, call it from any x402 client: discovery at [`/.well-known/x402`](https://api.agentsearchhq.com/.well-known/x402) and [`/openapi.json`](https://api.agentsearchhq.com/openapi.json); curl / `@x402/fetch` / Python examples at <https://agentsearchhq.com/docs/x402>.
 
 ---
 

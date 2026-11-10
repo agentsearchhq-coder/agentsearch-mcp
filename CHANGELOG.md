@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+### Added
+- **Direct x402 (opt-in).** `AGENTSEARCH_X402_DIRECT=1` (with `AGENTSEARCH_WALLET_PRIVATE_KEY`) sends paid calls to AgentSearch's own x402 API on Base mainnet (`https://api.agentsearchhq.com/x402/v1/{search,extract,render}`) instead of the Pocket portal: extract $0.007, render $0.010, search $0.008 (search only with `AGENTSEARCH_MODE=paid`). Signs only exact/USDC on Base to AgentSearch's pinned payee, hard ceiling $0.010 per call, shared session cap. `AGENTSEARCH_X402_DIRECT_URL` overrides the host (https, or http on localhost) for testing.
+
+### Unchanged
+- Default behavior: without the new variable, the paid rail is the Pocket portal ($0.005), search modes, free tier/trial, self-hosted mode and review tools are as in 1.4.0.
+
 ## 1.4.0
 
 ### Added

@@ -111,7 +111,7 @@ export function loadPortalSettings(): PortalSettings {
 }
 
 /** Session budget: counted when a payment is SIGNED (a signed authorization may be settled). */
-class SessionBudget {
+export class SessionBudget {
   spent = 0n;
   reserved = 0n;
   remaining(cap: bigint): bigint {
@@ -127,6 +127,10 @@ export function resetSessionBudget(): void {
 export function sessionSpentAtomic(): bigint {
   return budget.spent;
 }
+/** Shared session budget (Pocket and direct x402 spend count against the same cap). */
+export function sessionBudget(): SessionBudget {
+  return budget;
+}
 
 export function atomicToUsd(a: bigint | string): string {
   const n = BigInt(a);
@@ -135,9 +139,9 @@ export function atomicToUsd(a: bigint | string): string {
   return `$${whole}.${frac}`;
 }
 
-const eqAddr = (a: unknown, b: string) => typeof a === "string" && a.toLowerCase() === b.toLowerCase();
+export const eqAddr = (a: unknown, b: string) => typeof a === "string" && a.toLowerCase() === b.toLowerCase();
 
-interface Accept {
+export interface Accept {
   scheme: string;
   network: string;
   amount: string;
@@ -148,13 +152,13 @@ interface Accept {
 }
 
 /** Picks the one option this server is willing to sign, or explains why none qualifies. */
-export function selectAccept(accepts: Accept[], ceiling: bigint): Accept {
+export function selectAccept(accepts: Accept[], ceiling: bigint, payee: string = PORTAL_PAYEE, payeeLabel = "the portal's"): Accept {
   const why: string[] = [];
   for (const a of accepts ?? []) {
     if (a.scheme !== "exact") { why.push(`${a.scheme} scheme`); continue; }
     if (a.network !== BASE_NETWORK) { why.push(`network ${a.network}`); continue; }
     if (!eqAddr(a.asset, USDC_BASE)) { why.push(`asset ${a.asset} is not USDC on Base`); continue; }
-    if (!eqAddr(a.payTo, PORTAL_PAYEE)) { why.push(`payee ${a.payTo} is not the portal's`); continue; }
+    if (!eqAddr(a.payTo, payee)) { why.push(`payee ${a.payTo} is not ${payeeLabel}`); continue; }
     if (!/^\d+$/.test(String(a.amount))) { why.push(`amount ${a.amount} is not an integer`); continue; }
     const amt = BigInt(a.amount);
     if (amt <= 0n) { why.push(`amount ${a.amount}`); continue; }
@@ -166,14 +170,14 @@ export function selectAccept(accepts: Accept[], ceiling: bigint): Accept {
   });
 }
 
-interface RawResponse {
+export interface RawResponse {
   status: number;
   headers: Headers;
   body: unknown;
   text: string;
 }
 
-async function post(url: string, body: unknown, extraHeaders: Record<string, string>): Promise<RawResponse> {
+export async function post(url: string, body: unknown, extraHeaders: Record<string, string>): Promise<RawResponse> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json", ...extraHeaders },

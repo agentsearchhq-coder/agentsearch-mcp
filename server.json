@@ -8,12 +8,12 @@
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.4.0",
+  "version": "1.5.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "transport": {
         "type": "stdio"
       },
@@ -38,6 +38,12 @@
           "isRequired": false,
           "format": "string",
           "default": "1"
+        },
+        {
+          "name": "AGENTSEARCH_X402_DIRECT",
+          "description": "Set to 1 to pay AgentSearch's own x402 API on Base directly (extract $0.007, render $0.010, search $0.008 when AGENTSEARCH_MODE=paid) instead of the Pocket portal. Needs the wallet key; per-call ceiling $0.010",
+          "isRequired": false,
+          "format": "string"
         },
         {
           "name": "AGENTSEARCH_MAX_TOTAL_ATOMIC",

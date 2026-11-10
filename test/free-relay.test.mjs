@@ -183,7 +183,7 @@ test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, c
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
   assert.equal(calls[0].body.url, "https://example.com/");
   assert.equal(calls[0].init.headers.authorization, undefined);
-  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.4\.0$/);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.5\.0$/);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.title, "Example Domain");
   assert.equal(data.free_trial.remaining_today, 4);
