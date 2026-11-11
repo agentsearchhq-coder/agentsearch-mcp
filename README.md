@@ -120,6 +120,21 @@ Scripts: `build` → `tsc`, `start` → `node dist/index.js`, `test` → build +
 
 Binary: `agentsearch-mcp` → `dist/index.js`
 
+### Docker
+
+The image starts the MCP server on stdio with the same default as `npx`: free keyless search (up to 25 searches/day per IP) and the extract/render trial. Pass optional paid env at runtime; never bake a key into the image.
+
+```bash
+docker build -t agentsearch-mcp .
+docker run --rm -i agentsearch-mcp
+# optional paid extract/render (and search if AGENTSEARCH_MODE=paid)
+docker run --rm -i -e AGENTSEARCH_WALLET_PRIVATE_KEY agentsearch-mcp
+```
+
+### Gemini CLI
+
+A [`gemini-extension.json`](gemini-extension.json) is in the repo root. Install with `gemini extensions install https://github.com/agentsearchhq-coder/agentsearch-mcp` (free search works with no settings; a wallet key is optional).
+
 ---
 
 ## Environment variables
