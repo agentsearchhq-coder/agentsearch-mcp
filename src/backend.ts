@@ -1,7 +1,7 @@
 /** Chooses how search/extract/render are served: self-hosted base URL, AgentSearch's direct x402 API (default paid route since 1.6.0), Pocket portal (x402, AGENTSEARCH_PAYMENT_ROUTE=pocket), or the free relay (search + extract/render free trial). */
 import { extractPage, hasBaseUrl, loadConfig, renderPage, webSearch, type ExtractRequest, type RenderRequest, type SearchRequest } from "./client.js";
 import { callPortal, hasWalletKey, PortalError, type PortalOperation } from "./pocket.js";
-import { callDirect, directEnabled, DIRECT_SETUP_MESSAGE, type DirectOperation } from "./direct.js";
+import { callDirect, directEnabled, DIRECT_PRICES_USD, DIRECT_SETUP_MESSAGE, isDirectOnly, type DirectOperation } from "./direct.js";
 import { invalidRouteMessage, paidRoute } from "./route.js";
 import { AgentSearchHttpError } from "./client.js";
 import { FreeTrialUnavailableError, freeTrialEnabled, paidOnlyMessage, relaySearch, relayTrial } from "./relay.js";
@@ -29,14 +29,22 @@ export function invalidModeMessage(): string {
 }
 
 /** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. */
-export const SEARCH_AND_READ_POCKET_MESSAGE =
-  "agentsearch_search_and_read is only available on AgentSearch's direct x402 API ($0.009 per call at https://api.agentsearchhq.com/x402/v1/search_and_read). Unset AGENTSEARCH_PAYMENT_ROUTE or set it to direct. It is not on Pocket Network. Nothing was signed.";
+const DIRECT_ONLY_TOOL: Record<string, string> = { search_and_read: "agentsearch_search_and_read", news: "agentsearch_news_search", screenshot: "agentsearch_screenshot" };
 
-export const SEARCH_AND_READ_SELF_HOSTED_MESSAGE =
-  "agentsearch_search_and_read is only available on AgentSearch's direct x402 API (https://api.agentsearchhq.com/x402/v1/search_and_read), not on a self-hosted AGENTSEARCH_BASE_URL. Unset AGENTSEARCH_BASE_URL to use the direct API (needs a wallet key).";
+export function directOnlyPocketMessage(op: DirectOperation): string {
+  return `${DIRECT_ONLY_TOOL[op] ?? op} is only available on AgentSearch's direct x402 API (${DIRECT_PRICES_USD[op]} per call at https://api.agentsearchhq.com/x402/v1/${op}). Unset AGENTSEARCH_PAYMENT_ROUTE or set it to direct. It is not on Pocket Network. Nothing was signed.`;
+}
+
+export function directOnlySelfHostedMessage(op: DirectOperation): string {
+  return `${DIRECT_ONLY_TOOL[op] ?? op} is only available on AgentSearch's direct x402 API (https://api.agentsearchhq.com/x402/v1/${op}), not on a self-hosted AGENTSEARCH_BASE_URL. Unset AGENTSEARCH_BASE_URL to use the direct API (needs a wallet key).`;
+}
+
+export const SEARCH_AND_READ_POCKET_MESSAGE = directOnlyPocketMessage("search_and_read");
+
+export const SEARCH_AND_READ_SELF_HOSTED_MESSAGE = directOnlySelfHostedMessage("search_and_read");
 
 export function backendMode(op: DirectOperation = "search"): BackendMode {
-  if (op === "search_and_read") {
+  if (isDirectOnly(op)) {
     if (hasBaseUrl()) return "self-hosted";
     if (!hasWalletKey()) return "free-relay";
     const route = paidRoute();
@@ -58,7 +66,22 @@ function paidBackend(op: PortalOperation): BackendMode {
   return hasWalletKey() ? "pocket" : "free-relay";
 }
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean; structuredContent?: Record<string, unknown> };
+type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+type ToolResult = { content: ToolContent[]; isError?: boolean; structuredContent?: Record<string, unknown> };
+
+/** Screenshot: return the image as an MCP image block and the metadata (without the base64) as JSON text. */
+export function screenshotResult(result: Record<string, unknown>): ToolResult {
+  const response = (result.response ?? {}) as Record<string, unknown>;
+  const shot = (response.screenshot ?? {}) as Record<string, unknown>;
+  const data = typeof shot.base64 === "string" ? shot.base64 : "";
+  const format = shot.format === "jpeg" || shot.format === "jpg" ? "jpeg" : "png";
+  const { base64: _omit, ...shotMeta } = shot;
+  const meta = { ...result, response: { ...response, screenshot: { ...shotMeta, ...(data ? { returned_as: "image content block" } : {}) } }, note: DIRECT_RESPONSE_NOTE };
+  const content: ToolContent[] = [];
+  if (data) content.push({ type: "image", data, mimeType: `image/${format}` });
+  content.push({ type: "text", text: text(meta) });
+  return { content };
+}
 
 const text = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v, null, 2));
 const ok = (v: unknown): ToolResult => ({ content: [{ type: "text", text: text(v) }] });
@@ -76,14 +99,15 @@ export async function runOperation(
 ): Promise<ToolResult> {
   const mode = backendMode(op);
   try {
-    if (op === "search_and_read") {
-      if (mode === "self-hosted") return fail(SEARCH_AND_READ_SELF_HOSTED_MESSAGE);
+    if (isDirectOnly(op)) {
+      if (mode === "self-hosted") return fail(directOnlySelfHostedMessage(op));
       if (mode === "free-relay") return fail(DIRECT_SETUP_MESSAGE);
       if (paidRoute() === "invalid") return fail(invalidRouteMessage());
-      if (mode === "pocket") return fail(SEARCH_AND_READ_POCKET_MESSAGE);
+      if (mode === "pocket") return fail(directOnlyPocketMessage(op));
       const clean: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(body)) if (v !== undefined && v !== null) clean[k] = v;
-      const result = await callDirect("search_and_read", clean);
+      const result = await callDirect(op, clean);
+      if (op === "screenshot") return screenshotResult(result as unknown as Record<string, unknown>);
       return ok({ ...result, note: DIRECT_RESPONSE_NOTE });
     }
     if (op === "search" && mode !== "self-hosted" && searchMode() === "invalid") return fail(invalidModeMessage());

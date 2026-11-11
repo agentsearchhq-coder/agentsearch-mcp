@@ -12,7 +12,7 @@ const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BAS
   "AGENTSEARCH_MAX_TOTAL_ATOMIC", "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC",
   "AGENTSEARCH_PORTAL_URL", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_X402_DIRECT_URL", "AGENTSEARCH_PAYMENT_ROUTE"];
 const API = "https://api.agentsearchhq.com";
-const PRICES = { search: "8000", extract: "4000", render: "10000", search_and_read: "9000" };
+const PRICES = { search: "8000", extract: "4000", render: "10000", search_and_read: "9000", news: "8000", screenshot: "10000" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
 let saved, realFetch, calls, key;
 
@@ -198,4 +198,59 @@ test("search_and_read with a $0.008 per-call cap refuses and tells the user to r
 
 test("no wallet key: search_and_read is not on the free relay", () => {
   assert.equal(backendMode("search_and_read"), "free-relay");
+});
+
+test("1.8.0 news: direct-only, signs $0.008 and forwards filters", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
+  const payer = privateKeyToAccount(key).address; let signed;
+  mockApi({ op: "news", paid: (p) => { signed = p; return okResult({ results: [] , topic: "news" }, payer); } });
+  const res = await call(await connect(), "agentsearch_news_search", { query: "x402", max_results: 7, freshness: "week", include_domains: ["coindesk.com"] });
+  assert.equal(res.isError, undefined, res.content[0].text);
+  assert.equal(calls[0].url, `${API}/x402/v1/news`);
+  assert.deepEqual(calls[1].body, { query: "x402", max_results: 7, freshness: "week", include_domains: ["coindesk.com"] });
+  assert.equal(signed.payload.authorization.value, "8000");
+});
+
+test("1.8.0 paid search and search_and_read forward filters; extract forwards max_chars (capped 50000) and include_links", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
+  const payer = privateKeyToAccount(key).address;
+  mockApi({ op: "search", paid: () => okResult({ results: [] }, payer) });
+  await call(await connect(), "agentsearch_web_search", { query: "q", country: "us", exclude_domains: ["pinterest.com"], date_from: "2026-01-01" });
+  assert.deepEqual(calls[1].body, { query: "q", max_results: 5, country: "us", exclude_domains: ["pinterest.com"], date_from: "2026-01-01" });
+  calls = []; resetSessionBudget();
+  mockApi({ op: "search_and_read", paid: () => okResult({ results: [] }, payer) });
+  await call(await connect(), "agentsearch_search_and_read", { query: "q", language: "en", freshness: "month" });
+  assert.deepEqual(calls[1].body, { query: "q", language: "en", freshness: "month" });
+  calls = []; resetSessionBudget();
+  mockApi({ op: "extract", paid: () => okResult({ url: "https://example.com" }, payer) });
+  await call(await connect(), "agentsearch_extract", { url: "https://example.com", max_chars: 90000, include_links: false });
+  assert.deepEqual(calls[1].body, { url: "https://example.com", max_chars: 50000, include_links: false });
+});
+
+test("1.8.0 screenshot: signs $0.010, returns an MCP image block and metadata without base64", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
+  const payer = privateKeyToAccount(key).address;
+  mockApi({ op: "screenshot", paid: () => okResult({ url: "https://example.com/", title: "Example", status_code: 200,
+    screenshot: { format: "png", width: 390, height: 844, bytes: 3, base64: "iVBO" }, full_page: false, viewport: { width: 390, height: 844 }, warnings: [] }, payer) });
+  const res = await call(await connect(), "agentsearch_screenshot", { url: "https://example.com", viewport: { width: 390, height: 844 } });
+  assert.equal(res.isError, undefined, JSON.stringify(res.content));
+  assert.deepEqual(calls[1].body, { url: "https://example.com", viewport: { width: 390, height: 844 } });
+  assert.equal(res.content[0].type, "image"); assert.equal(res.content[0].data, "iVBO"); assert.equal(res.content[0].mimeType, "image/png");
+  const meta = JSON.parse(res.content[1].text);
+  assert.equal(meta.payment.amountAtomic, "10000"); assert.equal(meta.response.screenshot.base64, undefined); assert.equal(meta.response.screenshot.width, 390);
+});
+
+test("1.8.0 news and screenshot are direct-only: no key, pocket route, and self-hosted refuse without signing", async () => {
+  globalThis.fetch = async () => assert.fail("no network call expected");
+  for (const [tool, args] of [["agentsearch_news_search", { query: "q" }], ["agentsearch_screenshot", { url: "https://example.com" }]]) {
+    delete process.env.AGENTSEARCH_WALLET_PRIVATE_KEY; delete process.env.AGENTSEARCH_BASE_URL;
+    let res = await call(await connect(), tool, args);
+    assert.equal(res.isError, true); assert.match(res.content[0].text, /wallet key/i);
+    process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
+    res = await call(await connect(), tool, args);
+    assert.equal(res.isError, true); assert.match(res.content[0].text, new RegExp(tool)); assert.match(res.content[0].text, /not on Pocket/i);
+    delete process.env.AGENTSEARCH_PAYMENT_ROUTE; process.env.AGENTSEARCH_BASE_URL = "https://self.example";
+    res = await call(await connect(), tool, args);
+    assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
+  }
 });

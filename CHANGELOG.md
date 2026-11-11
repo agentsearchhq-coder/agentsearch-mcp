@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.8.0
+
+### Added
+- **`agentsearch_news_search`:** recent news articles (title, URL, snippet, domain, publish date) from AgentSearch's direct x402 API (`POST /x402/v1/news`, $0.008 / 8000 atomic USDC, empty results not charged). `max_results` 1–10 plus filters.
+- **`agentsearch_screenshot`:** PNG or JPEG of a public page (`POST /x402/v1/screenshot`, $0.010 / 10000 atomic USDC), returned as an MCP image content block plus JSON metadata (the base64 is not duplicated in the text). Options: `format`, `full_page` (clipped at 4000 px), `viewport`.
+- **Search filters** on paid `agentsearch_web_search`, `agentsearch_news_search` and `agentsearch_search_and_read`: `freshness` (day/week/month/year) or `date_from`/`date_to`, `country`, `language`, `include_domains`, `exclude_domains` (up to 5 each). The free tier ignores them.
+- **Extract options on the direct route:** `max_chars` is now forwarded (capped at the API's 50000) and new `include_links` (set `false` to save tokens). Before 1.8.0 the direct route dropped `max_chars`.
+
+### Changed
+- Direct prices in tool text and errors: **extract $0.004** (was $0.007) and **search_and_read $0.009** (was $0.015), matching the API. Search $0.008 and render $0.010 unchanged. The per-call ceiling stays $0.020.
+
+### Unchanged
+- Free search, the extract/render free trial, the Pocket route ($0.005; search, extract and render only), self-hosted mode and review tools. News and screenshot are direct-only like Search + Read.
+
 ## 1.7.0
 
 ### Added

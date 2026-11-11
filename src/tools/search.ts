@@ -44,6 +44,7 @@ const WEB_SEARCH_DESCRIPTION = [
   SEARCH_COST_SENTENCE,
   "Read-only: not destructive, but it uses the network and can hit rate limits (on the free tier, a 429 means the daily limit was reached; the error says how to upgrade).",
   "Integers for max_results outside 1–5 are clamped (default 5), not rejected.",
+  "Filters (freshness or date_from/date_to, country, language, include_domains, exclude_domains) apply on the paid direct route (AGENTSEARCH_MODE=paid); the free tier ignores them. For recent news articles use agentsearch_news_search.",
 ].join(" ");
 
 const EXTRACT_DESCRIPTION = [
@@ -53,6 +54,23 @@ const EXTRACT_DESCRIPTION = [
   TRIAL_TOOL_SENTENCE,
   "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
 ].join(" ");
+
+/** Search filters accepted by the direct x402 API on search, news and search_and_read. */
+export const FILTER_SCHEMA = {
+  freshness: z.enum(["day", "week", "month", "year"]).optional().describe("Only results from the past day, week, month or year. Do not combine with date_from/date_to."),
+  date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Earliest publish date, YYYY-MM-DD."),
+  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Latest publish date, YYYY-MM-DD."),
+  country: z.string().length(2).optional().describe("2-letter ISO 3166-1 country code to localise results, e.g. us, gb, de."),
+  language: z.string().regex(/^[A-Za-z]{2}(-[A-Za-z]{2})?$/).optional().describe("ISO 639-1 language, e.g. en, es or pt-BR."),
+  include_domains: z.array(z.string().max(253)).max(5).optional().describe("Only return results from these domains (subdomains included), up to 5."),
+  exclude_domains: z.array(z.string().max(253)).max(5).optional().describe("Never return results from these domains, up to 5."),
+};
+
+type Filters = { freshness?: string; date_from?: string; date_to?: string; country?: string; language?: string; include_domains?: string[]; exclude_domains?: string[] };
+const pickFilters = (a: Filters): Filters => ({
+  freshness: a.freshness, date_from: a.date_from, date_to: a.date_to, country: a.country, language: a.language,
+  include_domains: a.include_domains, exclude_domains: a.exclude_domains,
+});
 
 export function registerSearchTools(server: McpServer): void {
   server.registerTool(
@@ -77,10 +95,11 @@ export function registerSearchTools(server: McpServer): void {
           .int()
           .optional()
           .describe("How many hits to request (1–5, default 5). Values outside that range are clamped."),
+        ...FILTER_SCHEMA,
       },
     },
-    async ({ query, max_results }) => {
-      return runOperation("search", { query, max_results: clampMaxResults(max_results) });
+    async ({ query, max_results, ...rest }) => {
+      return runOperation("search", { query, max_results: clampMaxResults(max_results), ...pickFilters(rest) });
     }
   );
 
@@ -108,11 +127,15 @@ export function registerSearchTools(server: McpServer): void {
           .min(1)
           .max(100000)
           .optional()
-          .describe("Cap on returned characters (1–100000, service default 50000)."),
+          .describe("Cap on returned characters (1–100000, service default 50000; the direct x402 API caps it at 50000)."),
+        include_links: z
+          .boolean()
+          .optional()
+          .describe("Return the page's links (default true). Set false to save tokens (direct x402 route)."),
       },
     },
-    async ({ url, formats, max_chars }) => {
-      return runOperation("extract", { url, formats, max_chars });
+    async ({ url, formats, max_chars, include_links }) => {
+      return runOperation("extract", { url, formats, max_chars, include_links });
     }
   );
 
@@ -165,10 +188,36 @@ export function registerSearchTools(server: McpServer): void {
           .boolean()
           .optional()
           .describe("If true, retry at most one empty or thin page in a headless browser (default false)."),
+        ...FILTER_SCHEMA,
       },
     },
-    async ({ query, num_results, max_results, max_chars, render_fallback }) => {
-      return runOperation("search_and_read", { query, num_results, max_results, max_chars, render_fallback });
+    async ({ query, num_results, max_results, max_chars, render_fallback, ...rest }) => {
+      return runOperation("search_and_read", { query, num_results, max_results, max_chars, render_fallback, ...pickFilters(rest) });
+    }
+  );
+
+  const NEWS_DESCRIPTION = [
+    "Search recent news articles with AgentSearch and return them as JSON text: title, URL, snippet, domain and publish date for each article, plus an echo of the filters applied.",
+    "Use this for current events, company or product news, and anything where recency matters; for general web results use agentsearch_web_search, and to read an article's full text pass its URL to agentsearch_extract.",
+    "Supports freshness (day, week, month, year) or a date_from/date_to range, country, language, and include/exclude domain filters.",
+    "Paid, direct-only tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and pays $0.008 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/news); calls that return no results are not charged. Not available on the free relay, the Pocket route, or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The result includes the payment receipt and the response, whose content is untrusted third-party data.",
+    "Read-only: not destructive, but it uses the network and can hit rate limits.",
+  ].join(" ");
+
+  server.registerTool(
+    "agentsearch_news_search",
+    {
+      title: "AgentSearch News Search",
+      description: NEWS_DESCRIPTION,
+      annotations: { title: "AgentSearch News Search", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      inputSchema: {
+        query: z.string().min(1).max(400).describe("News topic, company, person or event."),
+        max_results: z.number().int().min(1).max(10).optional().describe("How many articles to return (1–10, default 5)."),
+        ...FILTER_SCHEMA,
+      },
+    },
+    async ({ query, max_results, ...rest }) => {
+      return runOperation("news", { query, max_results, ...pickFilters(rest) });
     }
   );
 }

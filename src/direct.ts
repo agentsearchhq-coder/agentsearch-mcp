@@ -1,6 +1,6 @@
 /**
  * Direct x402 route (the default paid route since 1.6.0; opt-in in 1.5.0): call AgentSearch's own x402 API on Base mainnet
- * (https://api.agentsearchhq.com/x402/v1/{search,extract,render,search_and_read}) instead of the Pocket portal.
+ * (https://api.agentsearchhq.com/x402/v1/{search,extract,render,search_and_read,news,screenshot}) instead of the Pocket portal.
  *
  * Same safety model as pocket.ts: unpaid POST -> 402 with PAYMENT-REQUIRED -> every limit is checked
  * BEFORE signing (scheme exact, Base, USDC, pinned AgentSearch payee, per-call ceiling $0.020, session cap)
@@ -20,7 +20,14 @@ import {
   post, type PortalOperation, type PortalResult, readWalletKey, selectAccept, sessionBudget, USDC_BASE,
 } from "./pocket.js";
 
-export type DirectOperation = PortalOperation | "search_and_read";
+export type DirectOperation = PortalOperation | "search_and_read" | "news" | "screenshot";
+/** Operations that exist only on the direct x402 API (not on the free relay, Pocket, or a self-hosted base URL). */
+export const DIRECT_ONLY_OPS = ["search_and_read", "news", "screenshot"] as const;
+export function isDirectOnly(op: DirectOperation): op is (typeof DIRECT_ONLY_OPS)[number] {
+  return (DIRECT_ONLY_OPS as readonly string[]).includes(op);
+}
+/** Search filters the direct API accepts on search, news and search_and_read. */
+export const FILTER_KEYS = ["freshness", "date_from", "date_to", "country", "language", "include_domains", "exclude_domains"];
 
 export const DIRECT_ENV_VAR = "AGENTSEARCH_X402_DIRECT";
 export const DEFAULT_DIRECT_URL = "https://api.agentsearchhq.com";
@@ -29,7 +36,7 @@ export const DIRECT_PAYEE = "0xC49B157887e51c21CB655f39CF65D6a4c2a4C337";
 /** $0.020 in USDC atomic units: hard ceiling per direct call (search_and_read is $0.009, render $0.010, search $0.008, extract $0.004). */
 export const DIRECT_MAX_PER_CALL_ATOMIC = 20_000n;
 /** Published direct prices, for messages only (the 402 is authoritative, the ceiling is the guard). */
-export const DIRECT_PRICES_USD: Record<DirectOperation, string> = { search: "$0.008", extract: "$0.004", render: "$0.010", search_and_read: "$0.009" };
+export const DIRECT_PRICES_USD: Record<DirectOperation, string> = { search: "$0.008", extract: "$0.004", render: "$0.010", search_and_read: "$0.009", news: "$0.008", screenshot: "$0.010" };
 
 /** True unless AGENTSEARCH_PAYMENT_ROUTE=pocket (or AGENTSEARCH_X402_DIRECT=0). An invalid route value is refused in runOperation. */
 export function directEnabled(): boolean {
@@ -39,7 +46,7 @@ export function directEnabled(): boolean {
 export const DIRECT_SETUP_MESSAGE = [
   "This paid call needs a wallet: no wallet key is configured (agentsearch_web_search is free by default and only pays when AGENTSEARCH_MODE=paid or auto).",
   "Set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, fund it with a little USDC on Base (no ETH needed), and restart the client.",
-  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render}, search_and_read ${DIRECT_PRICES_USD.search_and_read} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.020 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Search + Read is direct-only.`,
+  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render}, search_and_read ${DIRECT_PRICES_USD.search_and_read}, news ${DIRECT_PRICES_USD.news}, screenshot ${DIRECT_PRICES_USD.screenshot} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.020 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Search + Read, News and Screenshot are direct-only.`,
   "Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
   "Wallet setup takes about 2 minutes: https://agentsearchhq.com/wallet-setup",
 ].join(" ");
@@ -65,17 +72,24 @@ export function loadDirectSettings(): DirectSettings {
   return { baseUrl, sessionCapAtomic: session, perCallCapAtomic: perCall < DIRECT_MAX_PER_CALL_ATOMIC ? perCall : DIRECT_MAX_PER_CALL_ATOMIC };
 }
 
-/** Only the fields the direct API reads: search {query, max_results}; extract/render {url}; search_and_read {query, num_results, max_results, max_chars, render_fallback}. */
+/**
+ * Only the fields the direct API reads: search/news {query, max_results, filters}; extract {url, max_chars (<= 50000), include_links};
+ * render {url}; screenshot {url, format, full_page, viewport}; search_and_read {query, num_results, max_results, max_chars, render_fallback, filters}.
+ */
 export function directBody(op: DirectOperation, body: Record<string, unknown>): { body: Record<string, unknown>; dropped: string[] } {
-  const keep = op === "search" ? ["query", "max_results"]
-    : op === "search_and_read" ? ["query", "num_results", "max_results", "max_chars", "render_fallback"]
+  const keep = op === "search" || op === "news" ? ["query", "max_results", ...FILTER_KEYS]
+    : op === "search_and_read" ? ["query", "num_results", "max_results", "max_chars", "render_fallback", ...FILTER_KEYS]
+    : op === "extract" ? ["url", "max_chars", "include_links"]
+    : op === "screenshot" ? ["url", "format", "full_page", "viewport"]
     : ["url"];
   const out: Record<string, unknown> = {};
   const dropped: string[] = [];
   for (const [k, v] of Object.entries(body)) {
     if (v === undefined || v === null) continue;
+    if (Array.isArray(v) && v.length === 0) continue;
     if (keep.includes(k)) out[k] = v; else dropped.push(k);
   }
+  if (op === "extract" && typeof out.max_chars === "number" && out.max_chars > 50000) out.max_chars = 50000;
   return { body: out, dropped };
 }
 
