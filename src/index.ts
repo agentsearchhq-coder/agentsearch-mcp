@@ -29,7 +29,7 @@ async function main(): Promise<void> {
         : paidRoute() === "invalid"
           ? "AGENTSEARCH_PAYMENT_ROUTE is invalid (use direct or pocket): paid calls will return an error until it is fixed"
         : search === "direct" || (search === "free-relay" && backendMode("extract") === "direct" && hasWalletKey())
-          ? `paid route: AgentSearch's own x402 API on Base (search $0.008 when AGENTSEARCH_MODE=paid, extract $0.007, render $0.010; AGENTSEARCH_PAYMENT_ROUTE=pocket for the Pocket portal)${search === "direct" ? "" : "; search stays on the free tier"}`
+          ? `paid route: AgentSearch's own x402 API on Base (search $0.008 when AGENTSEARCH_MODE=paid, extract $0.004, render $0.010; AGENTSEARCH_PAYMENT_ROUTE=pocket for the Pocket portal)${search === "direct" ? "" : "; search stays on the free tier"}`
         : search === "pocket"
           ? "search: pay-per-call via Pocket portal (x402, USDC on Base, AGENTSEARCH_PAYMENT_ROUTE=pocket) because AGENTSEARCH_MODE opts in; extract/render pay per call too"
           : hasWalletKey()

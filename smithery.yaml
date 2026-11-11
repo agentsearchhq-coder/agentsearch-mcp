@@ -1,4 +1,4 @@
-# Smithery start command. Review tools and free search work with no config. With a wallet key, extract ($0.007) and render
+# Smithery start command. Review tools and free search work with no config. With a wallet key, extract ($0.004) and render
 # ($0.010) pay per call in USDC on Base over x402 to AgentSearch's own API (search stays free unless mode is paid; paymentRoute=pocket uses the Pocket portal at $0.005),
 # or use your self-hosted API when a base URL is set.
 startCommand:
@@ -8,7 +8,7 @@ startCommand:
     properties:
       walletPrivateKey:
         type: string
-        description: Optional 64-hex private key of a NEW wallet holding a little USDC on Base. Enables paid extract/render via x402 (extract $0.007, render $0.010, paid to AgentSearch); search stays free unless mode is paid. Used only to sign payments.
+        description: Optional 64-hex private key of a NEW wallet holding a little USDC on Base. Enables paid extract/render via x402 (extract $0.004, render $0.010, paid to AgentSearch); search stays free unless mode is paid. Used only to sign payments.
       maxTotalAtomic:
         type: string
         default: "1000000"

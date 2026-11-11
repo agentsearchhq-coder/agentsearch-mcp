@@ -43,7 +43,7 @@ export const SETUP_MESSAGE = [
   "Option 1 (pay per call, no account): set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config, then restart the client.",
   "Fund that wallet with a little USDC on Base (for example $1). No ETH is needed: the x402 facilitator pays gas.",
   "AGENTSEARCH_PAYMENT_ROUTE=pocket is set, so calls are paid through the Pocket Network Agentic Portal (https://agent.pocket.network) over x402 at $0.005 per call (5000 atomic units). Spending is limited to $0.005 per call and to AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default 1000000 = $1.00).",
-  "Remove AGENTSEARCH_PAYMENT_ROUTE to use the default route, AgentSearch's own x402 API (search $0.008, extract $0.007, render $0.010).",
+  "Remove AGENTSEARCH_PAYMENT_ROUTE to use the default route, AgentSearch's own x402 API (search $0.008, extract $0.004, render $0.010).",
   "Option 2 (self-hosted): set AGENTSEARCH_BASE_URL to your own AgentSearch-compatible API.",
   "A wallet key alone does not make search paid: set AGENTSEARCH_MODE=paid as well if you want to pay for search too.",
   "The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without either.",

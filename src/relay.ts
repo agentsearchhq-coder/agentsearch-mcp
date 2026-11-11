@@ -57,7 +57,7 @@ export function freeTrialLimitMessage(tool: "agentsearch_extract" | "agentsearch
   return [
     `Free trial limit reached for ${tool}: the AgentSearch free trial allows ${FREE_TRIAL_DAILY_LIMITS[op]} ${op} calls/day per IP (resets 00:00 UTC), subject to shared daily capacity.`,
     relayMessage ? `Relay said: ${relayMessage.slice(0, 300)}` : "",
-    `Continue with a wallet (USDC on Base, no account, no API key): ${op} costs ${op === "extract" ? "$0.007" : "$0.010"} per call on AgentSearch's own x402 API (the default), or $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket. Wallet setup takes about 2 minutes: ${WALLET_SETUP_URL}`,
+    `Continue with a wallet (USDC on Base, no account, no API key): ${op} costs ${op === "extract" ? "$0.004" : "$0.010"} per call on AgentSearch's own x402 API (the default), or $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket. Wallet setup takes about 2 minutes: ${WALLET_SETUP_URL}`,
     ADD_WALLET,
     "Spending is capped per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00).",
   ].filter(Boolean).join(" ");

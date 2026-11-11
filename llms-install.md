@@ -57,7 +57,7 @@ The two review tools stay free with no configuration. The board is https://revie
 
 ## 3. Optional paid search, extract, and render
 
-Paid calls go to AgentSearch's own [x402](https://x402.org) API on Base (`https://api.agentsearchhq.com`) and pay in USDC: **search $0.008, extract $0.007, render $0.010 per call**, charged only on a successful answer. No AgentSearch account, no API key, and no ETH for gas. The server never signs more than $0.010 per call. To pay $0.005 per call through the [Pocket Network Agentic Portal](https://agent.pocket.network) instead, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"`.
+Paid calls go to AgentSearch's own [x402](https://x402.org) API on Base (`https://api.agentsearchhq.com`) and pay in USDC: **search $0.008, extract $0.004, render $0.010 per call**, charged only on a successful answer. No AgentSearch account, no API key, and no ETH for gas. The server never signs more than $0.010 per call. To pay $0.005 per call through the [Pocket Network Agentic Portal](https://agent.pocket.network) instead, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"`.
 
 Use a new wallet that holds only what you are willing to spend. The private key is stored in plain text in the Cline config and is used only to sign payments.
 
@@ -87,7 +87,7 @@ Set the wallet key and a session spend cap on the same `agentsearch` entry:
 | `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | Optional. Can only lower the per-call cap; default and maximum `20000` ($0.020; `5000` on the Pocket route). Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
 | `AGENTSEARCH_MODE` | Search only. Leave unset (or `free`) to keep search on the free tier (up to 25 searches/day per IP). Set to `paid` to pay $0.008 per search call. A wallet key alone does **not** make search paid. |
 
-With no wallet key, `agentsearch_extract` and `agentsearch_render` use a small free trial (5 and 3 calls per day per IP; `AGENTSEARCH_FREE_TRIAL=0` turns it off). A wallet key enables them at $0.007 (extract) and $0.010 (render) per call, and `agentsearch_search_and_read` at $0.015 (direct-only, charged only when at least one page has text). Search stays free until you also set `"AGENTSEARCH_MODE": "paid"`. The direct per-call ceiling is $0.020. Leave `autoApprove` empty so Cline asks before a tool runs; the caps above are what limit spend if it does not.
+With no wallet key, `agentsearch_extract` and `agentsearch_render` use a small free trial (5 and 3 calls per day per IP; `AGENTSEARCH_FREE_TRIAL=0` turns it off). A wallet key enables them at $0.004 (extract) and $0.010 (render) per call, and `agentsearch_search_and_read` at $0.009 (direct-only, charged only when at least one page has text). Search stays free until you also set `"AGENTSEARCH_MODE": "paid"`. The direct per-call ceiling is $0.020. Leave `autoApprove` empty so Cline asks before a tool runs; the caps above are what limit spend if it does not.
 
 Fund the wallet with a little USDC **on Base** (for example $1, enough for about 100-140 paid calls). Save the settings file again so Cline restarts the server with the new env.
 

@@ -12,7 +12,7 @@ const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BAS
   "AGENTSEARCH_MAX_TOTAL_ATOMIC", "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC",
   "AGENTSEARCH_PORTAL_URL", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_X402_DIRECT_URL", "AGENTSEARCH_PAYMENT_ROUTE"];
 const API = "https://api.agentsearchhq.com";
-const PRICES = { search: "8000", extract: "7000", render: "10000", search_and_read: "15000" };
+const PRICES = { search: "8000", extract: "4000", render: "10000", search_and_read: "9000" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
 let saved, realFetch, calls, key;
 
@@ -77,8 +77,8 @@ test("invalid AGENTSEARCH_PAYMENT_ROUTE refuses paid calls without signing", asy
 
 test("default route with an old $0.005 per-call cap refuses with a clear hint (nothing signed)", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "5000";
-  mockApi({ op: "extract", paid: () => assert.fail("must not pay") });
-  const res = await call(await connect(), "agentsearch_extract", { url: "https://example.com" });
+  mockApi({ op: "render", paid: () => assert.fail("must not pay") });
+  const res = await call(await connect(), "agentsearch_render", { url: "https://example.com" });
   assert.equal(res.isError, true);
   assert.match(res.content[0].text, /AGENTSEARCH_PAYMENT_ROUTE=pocket/);
   assert.equal(calls.filter((c) => c.sig).length, 0);
@@ -131,11 +131,11 @@ test("direct refuses the Pocket payee, a price above $0.020, and a non-USDC asse
 
 test("direct respects lower per-call cap and the session cap", async () => {
   process.env.AGENTSEARCH_X402_DIRECT = "1"; process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
-  process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "7000";
+  process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "4000";
   mockApi({ op: "render", paid: () => assert.fail("must not sign") });
   let res = await call(await connect(), "agentsearch_render", { url: "https://example.com" });
-  assert.equal(res.isError, true); assert.match(res.content[0].text, /above the 7000 atomic/);
-  delete process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC; process.env.AGENTSEARCH_MAX_TOTAL_ATOMIC = "7000";
+  assert.equal(res.isError, true); assert.match(res.content[0].text, /above the 4000 atomic/);
+  delete process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC; process.env.AGENTSEARCH_MAX_TOTAL_ATOMIC = "4000";
   const payer = privateKeyToAccount(key).address;
   mockApi({ op: "extract", paid: () => okResult({ ok: 1 }, payer) });
   const client = await connect();
@@ -187,8 +187,8 @@ test("search_and_read is paid-only and direct-only: no key, pocket route, and se
   assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
 });
 
-test("search_and_read with a $0.010 per-call cap refuses and tells the user to raise it to 20000", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "10000";
+test("search_and_read with a $0.008 per-call cap refuses and tells the user to raise it to 20000", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "8000";
   mockApi({ op: "search_and_read", paid: () => assert.fail("must not pay") });
   const res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
   assert.equal(res.isError, true);

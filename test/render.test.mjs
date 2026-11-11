@@ -93,7 +93,7 @@ test("AGENTSEARCH_FREE_TRIAL=0, no wallet key and no AGENTSEARCH_BASE_URL: extra
     assert.equal(r.content[0].text, paidOnlyMessage(name));
     // 1.6.0: the message leads with the default direct route and names Pocket as the opt-in route.
     assert.match(r.content[0].text, /AgentSearch's own x402 API/);
-    assert.match(r.content[0].text, /extract \$0\.007, render \$0\.010/);
+    assert.match(r.content[0].text, /extract \$0\.004, render \$0\.010/);
     assert.match(r.content[0].text, /AGENTSEARCH_PAYMENT_ROUTE=pocket/);
     assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
   }

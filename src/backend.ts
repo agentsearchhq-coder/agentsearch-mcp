@@ -30,7 +30,7 @@ export function invalidModeMessage(): string {
 
 /** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. */
 export const SEARCH_AND_READ_POCKET_MESSAGE =
-  "agentsearch_search_and_read is only available on AgentSearch's direct x402 API ($0.015 per call at https://api.agentsearchhq.com/x402/v1/search_and_read). Unset AGENTSEARCH_PAYMENT_ROUTE or set it to direct. It is not on Pocket Network. Nothing was signed.";
+  "agentsearch_search_and_read is only available on AgentSearch's direct x402 API ($0.009 per call at https://api.agentsearchhq.com/x402/v1/search_and_read). Unset AGENTSEARCH_PAYMENT_ROUTE or set it to direct. It is not on Pocket Network. Nothing was signed.";
 
 export const SEARCH_AND_READ_SELF_HOSTED_MESSAGE =
   "agentsearch_search_and_read is only available on AgentSearch's direct x402 API (https://api.agentsearchhq.com/x402/v1/search_and_read), not on a self-hosted AGENTSEARCH_BASE_URL. Unset AGENTSEARCH_BASE_URL to use the direct API (needs a wallet key).";
