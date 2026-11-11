@@ -57,7 +57,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@x402/core": "^2.26.0",
     "@x402/evm": "^2.26.0",
     "viem": "^2.57.4",
