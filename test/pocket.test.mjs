@@ -73,12 +73,12 @@ const call = async (client, name, args) => client.callTool({ name, arguments: ar
 test("402 -> signed EIP-3009 retry -> 200 returns envelope, receipt and spend", async () => {
   const payer = privateKeyToAccount(key).address;
   let signed;
-  mockPortal({ paid: (p) => { signed = p; return okEnvelope("agentsearch-web-search-v1", { query: "q", results: [] }, payer); } });
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q", max_results: 2 });
+  mockPortal({ paid: (p) => { signed = p; return okEnvelope("agentsearch-web-search-v1", { query: "qq", results: [] }, payer); } });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq", max_results: 2 });
   assert.equal(res.isError, undefined);
   assert.equal(calls.length, 2);
   assert.equal(calls[0].url, `${PORTAL}/v1/agentsearch-web-search-v1/v1/search`);
-  assert.deepEqual(calls[1].body, { query: "q", max_results: 2 });
+  assert.deepEqual(calls[1].body, { query: "qq", max_results: 2 });
   assert.equal(signed.x402Version, 2);
   const a = signed.payload.authorization;
   assert.equal(a.to.toLowerCase(), PORTAL_PAYEE.toLowerCase());
@@ -129,7 +129,7 @@ for (const [label, over, re] of [
 ]) {
   test(`refuses to sign: ${label}`, async () => {
     mockPortal({ over, paid: () => assert.fail("must not send a payment") });
-    const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+    const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
     assert.equal(res.isError, true);
     assert.match(res.content[0].text, re);
     assert.match(res.content[0].text, /Nothing was signed/);
@@ -139,7 +139,7 @@ for (const [label, over, re] of [
 
 test("refuses a 402 for a different service id", async () => {
   mockPortal({ serviceId: "some-other-service", paid: () => assert.fail("no") });
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.equal(res.isError, true);
   assert.match(res.content[0].text, /not agentsearch-web-search-v1/);
 });
@@ -147,12 +147,12 @@ test("refuses a 402 for a different service id", async () => {
 test("per-call setting can lower but never raise the $0.005 ceiling", async () => {
   process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "4000";
   mockPortal({ paid: () => assert.fail("no") });
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.match(res.content[0].text, /above the 4000/);
   process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "999999";
   calls.length = 0;
   mockPortal({ over: { amount: "6000" }, paid: () => assert.fail("no") });
-  const r2 = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const r2 = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.match(r2.content[0].text, /above the 5000/);
 });
 
@@ -161,9 +161,9 @@ test("session cap is enforced (default $1.00, configurable)", async () => {
   const payer = privateKeyToAccount(key).address;
   mockPortal({ paid: () => okEnvelope("agentsearch-web-search-v1", {}, payer) });
   const client = await connect();
-  assert.equal((await call(client, "agentsearch_web_search", { query: "a" })).isError, undefined);
-  assert.equal((await call(client, "agentsearch_web_search", { query: "b" })).isError, undefined);
-  const third = await call(client, "agentsearch_web_search", { query: "c" });
+  assert.equal((await call(client, "agentsearch_web_search", { query: "aa" })).isError, undefined);
+  assert.equal((await call(client, "agentsearch_web_search", { query: "bb" })).isError, undefined);
+  const third = await call(client, "agentsearch_web_search", { query: "cc" });
   assert.equal(third.isError, true);
   assert.match(third.content[0].text, /Session spend cap reached/);
   assert.equal(calls.filter((c) => c.sig).length, 2);
@@ -171,7 +171,7 @@ test("session cap is enforced (default $1.00, configurable)", async () => {
 
 test("non-2xx after payment (400 UPSTREAM_REJECTED) is an error, not settled, not retryable", async () => {
   mockPortal({ paid: () => new Response(JSON.stringify({ error: { code: "UPSTREAM_REJECTED", message: "bad body", retryable: false } }), { status: 400 }) });
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.equal(res.isError, true);
   const out = JSON.parse(res.content[0].text);
   assert.equal(out.error.code, "UPSTREAM_REJECTED");
@@ -182,14 +182,14 @@ test("non-2xx after payment (400 UPSTREAM_REJECTED) is an error, not settled, no
 
 test("503 with Retry-After is retryable", async () => {
   mockPortal({ paid: () => new Response(JSON.stringify({ error: { code: "SERVICE_UNAVAILABLE", message: "later", retryable: true } }), { status: 503, headers: { "retry-after": "30" } }) });
-  const out = JSON.parse((await call(await connect(), "agentsearch_web_search", { query: "q" })).content[0].text);
+  const out = JSON.parse((await call(await connect(), "agentsearch_web_search", { query: "qq" })).content[0].text);
   assert.equal(out.error.retryable, true);
   assert.equal(out.error.retryAfter, "30");
 });
 
 test("non-402 before payment: nothing signed", async () => {
   globalThis.fetch = async () => new Response(JSON.stringify({ error: { code: "RATE_LIMITED", message: "slow down", retryable: true } }), { status: 429 });
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.equal(res.isError, true);
   assert.match(res.content[0].text, /429 RATE_LIMITED.*Nothing was signed/);
 });
@@ -197,13 +197,13 @@ test("non-402 before payment: nothing signed", async () => {
 test("invalid key is reported without echoing it; base URL wins over key", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = "not-a-key-SECRETISH";
   globalThis.fetch = async () => assert.fail("no network");
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.equal(res.isError, true);
   assert.equal(res.content[0].text.includes("SECRETISH"), false);
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   process.env.AGENTSEARCH_BASE_URL = "https://self.test";
   globalThis.fetch = async (url) => { calls.push(String(url)); return new Response("{}", { status: 200 }); };
-  await call(await connect(), "agentsearch_web_search", { query: "q" });
+  await call(await connect(), "agentsearch_web_search", { query: "qq" });
   assert.deepEqual(calls, ["https://self.test/v1/search"]);
 });
 
@@ -215,5 +215,5 @@ test("POCKET_PRIVATE_KEY alias works; no key + trial off -> paid-tool message", 
   assert.equal(res.content[0].text, paidOnlyMessage("agentsearch_render"));
   process.env.POCKET_PRIVATE_KEY = key.slice(2); // without 0x
   mockPortal({ paid: () => okEnvelope("agentsearch-web-search-v1", {}, privateKeyToAccount(key).address) });
-  assert.equal((await call(await connect(), "agentsearch_web_search", { query: "q" })).isError, undefined);
+  assert.equal((await call(await connect(), "agentsearch_web_search", { query: "qq" })).isError, undefined);
 });

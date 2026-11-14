@@ -39,7 +39,7 @@ for (const [name, fn, path] of [["extract", extractPage, "/v1/extract"], ["rende
 
 test("search 404 is not rewritten", async () => {
   mock(404, { detail: "Not Found" });
-  await assert.rejects(webSearch(cfg, { query: "x" }), (e) => { assert.doesNotMatch(e.message, /free relay/); return true; });
+  await assert.rejects(webSearch(cfg, { query: "xx" }), (e) => { assert.doesNotMatch(e.message, /free relay/); return true; });
 });
 
 test("messages and descriptions state the relay limitation", () => {

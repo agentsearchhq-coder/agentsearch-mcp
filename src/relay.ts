@@ -117,6 +117,20 @@ export async function relayTrial(op: "extract" | "render", req: ExtractRequest |
   return data;
 }
 
+/** Relay 4xx (except 429) are input errors: mark them non-retryable so agents fix the input instead of looping. */
+function inputErrorText(status: number, text: string): string {
+  try {
+    const j = JSON.parse(text) as { error?: { retryable?: boolean; message?: string } };
+    if (j && typeof j === "object" && j.error && typeof j.error === "object") {
+      j.error.retryable = false;
+      return `${JSON.stringify(j)} Input rejected (HTTP ${status}): fix the input instead of retrying unchanged.`;
+    }
+  } catch {
+    /* not JSON */
+  }
+  return `${text} Input rejected (HTTP ${status}): fix the input instead of retrying unchanged.`;
+}
+
 /** Search through the free relay. Throws AgentSearchHttpError(429, FREE_RELAY_LIMIT_MESSAGE) when the daily limit is hit. */
 export async function relaySearch(req: SearchRequest): Promise<unknown> {
   const body: Record<string, unknown> = { query: req.query };
@@ -129,6 +143,7 @@ export async function relaySearch(req: SearchRequest): Promise<unknown> {
   });
   const text = await res.text();
   if (res.status === 429) throw new AgentSearchHttpError(429, hasWalletKey() ? FREE_RELAY_LIMIT_MESSAGE_WITH_WALLET : FREE_RELAY_LIMIT_MESSAGE);
+  if (res.status >= 400 && res.status < 500 && text) throw new AgentSearchHttpError(res.status, inputErrorText(res.status, text));
   if (!res.ok) throw new AgentSearchHttpError(res.status, text || res.statusText);
   let data: unknown;
   try {

@@ -44,7 +44,7 @@ test("requests carry an abort signal (timeout)", async () => {
   assert.equal(requestTimeoutMs(), 5000);
   process.env.AGENTSEARCH_TIMEOUT_MS = "5";
   assert.equal(requestTimeoutMs(), DEFAULT_TIMEOUT_MS);
-  await webSearch({ baseUrl: "https://api.example.com" }, { query: "q", max_results: 1 });
+  await webSearch({ baseUrl: "https://api.example.com" }, { query: "qq", max_results: 1 });
   assert.ok(calls[0].init.signal instanceof AbortSignal);
 });
 
@@ -53,7 +53,7 @@ test("a hung upstream is aborted", async () => {
   globalThis.fetch = (url, init) => new Promise((_, rej) => init.signal.addEventListener("abort", () => rej(init.signal.reason)));
   const keepAlive = setTimeout(() => {}, 5000); // AbortSignal.timeout timers are unref'd
   try {
-    await assert.rejects(webSearch({ baseUrl: "https://api.example.com" }, { query: "q", max_results: 1 }), /timeout|abort/i);
+    await assert.rejects(webSearch({ baseUrl: "https://api.example.com" }, { query: "qq", max_results: 1 }), /timeout|abort/i);
   } finally {
     clearTimeout(keepAlive);
   }

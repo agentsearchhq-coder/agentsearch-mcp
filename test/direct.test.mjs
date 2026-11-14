@@ -104,12 +104,12 @@ for (const op of ["search", "extract", "render", "search_and_read"]) {
     const payer = privateKeyToAccount(key).address; let signed;
     mockApi({ op, paid: (p) => { signed = p; return okResult({ ok: op }, payer); } });
     const tool = { search: "agentsearch_web_search", extract: "agentsearch_extract", render: "agentsearch_render", search_and_read: "agentsearch_search_and_read" }[op];
-    const args = op === "search" ? { query: "q", max_results: 3 } : op === "search_and_read" ? { query: "q", num_results: 3 } : { url: "https://example.com", ...(op === "render" ? { formats: ["markdown"] } : {}) };
+    const args = op === "search" ? { query: "qq", max_results: 3 } : op === "search_and_read" ? { query: "qq", num_results: 3 } : { url: "https://example.com", ...(op === "render" ? { formats: ["markdown"] } : {}) };
     const res = await call(await connect(), tool, args);
     assert.equal(res.isError, undefined, res.content[0].text);
     assert.equal(calls.length, 2);
     assert.equal(calls[0].url, `${API}/x402/v1/${op}`);
-    assert.deepEqual(calls[1].body, op === "search" ? { query: "q", max_results: 3 } : op === "search_and_read" ? { query: "q", num_results: 3 } : { url: "https://example.com" });
+    assert.deepEqual(calls[1].body, op === "search" ? { query: "qq", max_results: 3 } : op === "search_and_read" ? { query: "qq", num_results: 3 } : { url: "https://example.com" });
     assert.equal(signed.payload.authorization.to.toLowerCase(), DIRECT_PAYEE.toLowerCase());
     assert.equal(signed.payload.authorization.value, PRICES[op]);
     const out = parse(res);
@@ -160,7 +160,7 @@ test("direct: resource mismatch and non-402 first answer are refused; 502 after 
 test("direct with no key: extract keeps the free trial path; paid search gives the direct setup message", async () => {
   process.env.AGENTSEARCH_X402_DIRECT = "1"; process.env.AGENTSEARCH_MODE = "paid";
   globalThis.fetch = async () => assert.fail("no network call expected");
-  const res = await call(await connect(), "agentsearch_web_search", { query: "q" });
+  const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   // paid mode without key -> pocket path -> setup message (no network); unchanged from 1.4.0
   assert.equal(res.isError, true);
   assert.ok(DIRECT_SETUP_MESSAGE.includes("$0.008"));
@@ -176,21 +176,21 @@ test("direct URL must be https or localhost", async () => {
 
 test("search_and_read is paid-only and direct-only: no key, pocket route, and self-hosted all refuse without signing", async () => {
   globalThis.fetch = async () => assert.fail("no network call expected");
-  let res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  let res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /wallet key/i);
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
-  res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /direct x402 API/); assert.match(res.content[0].text, /not on Pocket/i);
   delete process.env.AGENTSEARCH_PAYMENT_ROUTE;
   process.env.AGENTSEARCH_BASE_URL = "https://self.example";
-  res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
 });
 
 test("search_and_read with a $0.008 per-call cap refuses and tells the user to raise it to 20000", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "8000";
   mockApi({ op: "search_and_read", paid: () => assert.fail("must not pay") });
-  const res = await call(await connect(), "agentsearch_search_and_read", { query: "q" });
+  const res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true);
   assert.match(res.content[0].text, /Raise the cap to 20000/);
   assert.equal(calls.filter((c) => c.sig).length, 0);
@@ -215,12 +215,12 @@ test("1.8.0 paid search and search_and_read forward filters; extract forwards ma
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
   const payer = privateKeyToAccount(key).address;
   mockApi({ op: "search", paid: () => okResult({ results: [] }, payer) });
-  await call(await connect(), "agentsearch_web_search", { query: "q", country: "us", exclude_domains: ["pinterest.com"], date_from: "2026-01-01" });
-  assert.deepEqual(calls[1].body, { query: "q", max_results: 5, country: "us", exclude_domains: ["pinterest.com"], date_from: "2026-01-01" });
+  await call(await connect(), "agentsearch_web_search", { query: "qq", country: "us", exclude_domains: ["pinterest.com"], date_from: "2026-01-01" });
+  assert.deepEqual(calls[1].body, { query: "qq", max_results: 5, country: "us", exclude_domains: ["pinterest.com"], date_from: "2026-01-01" });
   calls = []; resetSessionBudget();
   mockApi({ op: "search_and_read", paid: () => okResult({ results: [] }, payer) });
-  await call(await connect(), "agentsearch_search_and_read", { query: "q", language: "en", freshness: "month" });
-  assert.deepEqual(calls[1].body, { query: "q", language: "en", freshness: "month" });
+  await call(await connect(), "agentsearch_search_and_read", { query: "qq", language: "en", freshness: "month" });
+  assert.deepEqual(calls[1].body, { query: "qq", language: "en", freshness: "month" });
   calls = []; resetSessionBudget();
   mockApi({ op: "extract", paid: () => okResult({ url: "https://example.com" }, payer) });
   await call(await connect(), "agentsearch_extract", { url: "https://example.com", max_chars: 90000, include_links: false });
@@ -242,7 +242,7 @@ test("1.8.0 screenshot: signs $0.010, returns an MCP image block and metadata wi
 
 test("1.8.0 news and screenshot are direct-only: no key, pocket route, and self-hosted refuse without signing", async () => {
   globalThis.fetch = async () => assert.fail("no network call expected");
-  for (const [tool, args] of [["agentsearch_news_search", { query: "q" }], ["agentsearch_screenshot", { url: "https://example.com" }]]) {
+  for (const [tool, args] of [["agentsearch_news_search", { query: "qq" }], ["agentsearch_screenshot", { url: "https://example.com" }]]) {
     delete process.env.AGENTSEARCH_WALLET_PRIVATE_KEY; delete process.env.AGENTSEARCH_BASE_URL;
     let res = await call(await connect(), tool, args);
     assert.equal(res.isError, true); assert.match(res.content[0].text, /wallet key/i);

@@ -64,13 +64,13 @@ test("AGENTSEARCH_MODE: free by default, paid and auto are explicit opt-ins, jun
 });
 
 test("no config: web search POSTs to the free relay with no auth and returns results", async () => {
-  mock(200, { query: "q", result_count: 1, provider: "x", results: [{ title: "T", url: "https://e.com" }] });
-  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q", max_results: 9 } });
+  mock(200, { query: "qq", result_count: 1, provider: "x", results: [{ title: "T", url: "https://e.com" }] });
+  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq", max_results: 9 } });
   assert.equal(r.isError, undefined);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/search`);
   assert.equal(FREE_RELAY_URL, "https://relay.agentsearchhq.com");
-  assert.deepEqual(calls[0].body, { query: "q", max_results: 5 });
+  assert.deepEqual(calls[0].body, { query: "qq", max_results: 5 });
   assert.equal(calls[0].init.headers.authorization, undefined);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.results[0].title, "T");
@@ -79,7 +79,7 @@ test("no config: web search POSTs to the free relay with no auth and returns res
 
 test("free relay 429 returns the limit message with upgrade instructions", async () => {
   mock(429, { detail: "rate limited" });
-  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.equal(r.content[0].text, FREE_RELAY_LIMIT_MESSAGE);
   assert.match(r.content[0].text, /up to 25 searches\/day per IP, subject to shared daily capacity/);
@@ -90,7 +90,7 @@ test("free relay 429 returns the limit message with upgrade instructions", async
 
 test("free relay 5xx is reported as an error, not the limit message", async () => {
   mock(503, "down");
-  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /503/);
   assert.doesNotMatch(r.content[0].text, /limit reached/);
@@ -98,8 +98,8 @@ test("free relay 5xx is reported as an error, not the limit message", async () =
 
 test("wallet key set, default mode: search still uses the free relay and never contacts the portal", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
-  mock(200, { query: "q", result_count: 0, results: [] });
-  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  mock(200, { query: "qq", result_count: 0, results: [] });
+  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, undefined);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/search`);
@@ -109,7 +109,7 @@ test("wallet key set, default mode: search still uses the free relay and never c
 test("wallet key set, default mode: free relay 429 tells the user to set AGENTSEARCH_MODE=paid", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
   mock(429, { detail: "rate limited" });
-  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /AGENTSEARCH_MODE=paid/);
   assert.match(r.content[0].text, /up to 25 searches\/day per IP, subject to shared daily capacity/);
@@ -120,7 +120,7 @@ test("AGENTSEARCH_MODE=paid with a wallet key: search goes to the portal, never 
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
   process.env.AGENTSEARCH_MODE = "paid";
   mock(500, "portal down");
-  await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.ok(calls.length >= 1);
   for (const c of calls) assert.ok(!c.url.startsWith(FREE_RELAY_URL), c.url);
 });
@@ -128,7 +128,7 @@ test("AGENTSEARCH_MODE=paid with a wallet key: search goes to the portal, never 
 test("AGENTSEARCH_MODE=paid without a wallet key: setup message, no network call", async () => {
   process.env.AGENTSEARCH_MODE = "paid";
   mock(500, "should not be called");
-  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /wallet/);
   assert.equal(calls.length, 0);
@@ -139,7 +139,7 @@ test("invalid AGENTSEARCH_MODE: search errors without any network call; extract/
   process.env.AGENTSEARCH_FREE_TRIAL = "0";
   mock(500, "should not be called");
   const client = await connect();
-  const r = await client.callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  const r = await client.callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /AGENTSEARCH_MODE must be one of 'free', 'paid' or 'auto'/);
   assert.match(r.content[0].text, /No call was made/);
@@ -184,7 +184,7 @@ test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, c
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
   assert.equal(calls[0].body.url, "https://example.com/");
   assert.equal(calls[0].init.headers.authorization, undefined);
-  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.8\.0$/);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1\.8\.1$/);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.title, "Example Domain");
   assert.equal(data.free_trial.remaining_today, 4);
@@ -237,7 +237,7 @@ test("AGENTSEARCH_FREE_TRIAL=0 makes no network call for extract/render; search 
   assert.equal(r.content[0].text, paidOnlyMessage("agentsearch_extract"));
   assert.match(r.content[0].text, /turned off/);
   assert.equal(calls.length, 0);
-  await c.callTool({ name: "agentsearch_web_search", arguments: { query: "q" } });
+  await c.callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/search`);
 });
 
@@ -254,4 +254,33 @@ test("self-hosted base URL wins over the trial", async () => {
   mock(200, { title: "S" });
   await (await connect()).callTool({ name: "agentsearch_extract", arguments: { url: "https://example.com/" } });
   assert.equal(calls[0].url, "https://self.test/v1/extract");
+});
+
+test("1.8.1: queries under 2 characters are rejected before any request (search, news, search_and_read)", async () => {
+  mock(200, { results: [] });
+  const client = await connect();
+  for (const [name, args] of [["agentsearch_web_search", { query: "a" }], ["agentsearch_web_search", { query: "  b  " }], ["agentsearch_news_search", { query: "c" }], ["agentsearch_search_and_read", { query: "d" }]]) {
+    let text = "";
+    try {
+      const r = await client.callTool({ name, arguments: args });
+      assert.equal(r.isError, true, `${name} should be an error`);
+      text = JSON.stringify(r.content);
+    } catch (e) {
+      text = String(e?.message ?? e);
+    }
+    assert.match(text, /at least 2 characters/, name);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("1.8.1: relay 400 QUERY_TOO_SHORT is reported as non-retryable input error", async () => {
+  mock(400, { query: "x", result_count: 0, results: [], error: { code: "QUERY_TOO_SHORT", message: "Query must be at least 2 characters.", retryable: true, upstream_status: 400 } });
+  const client = await connect();
+  const r = await client.callTool({ name: "agentsearch_web_search", arguments: { query: "ok query" } });
+  assert.equal(r.isError, true);
+  const text = JSON.stringify(r.content);
+  assert.match(text, /QUERY_TOO_SHORT/);
+  assert.match(text, /\\"retryable\\":false/);
+  assert.doesNotMatch(text, /\\"retryable\\":true/);
+  assert.match(text, /fix the input instead of retrying unchanged/);
 });

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.1
+
+- **Short queries fail fast:** web search, news search and Search + Read now reject queries under 2 characters (after trimming) before any request, with a message telling the agent to rewrite the query. The API answers these with HTTP 400 `QUERY_TOO_SHORT`, so nothing was ever charged, but agents could loop on them.
+- **Free relay input errors are non-retryable:** a relay 4xx (other than 429) is now reported with `retryable: false` and "fix the input instead of retrying unchanged", instead of passing through `retryable: true`.
+
 ## 1.8.0
 
 ### Added

@@ -3,6 +3,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AgentSearchHttpError, clampMaxResults } from "../client.js";
 import { runOperation } from "../backend.js";
 
+/** The API rejects queries shorter than 2 characters (HTTP 400 QUERY_TOO_SHORT); catch it before any request. */
+export const QUERY_MIN_MESSAGE = "Query must be at least 2 characters. Rewrite the query with real keywords instead of retrying it unchanged.";
+
 export function formatResult(data: unknown): string {
   try {
     return JSON.stringify(data, null, 2);
@@ -88,8 +91,9 @@ export function registerSearchTools(server: McpServer): void {
       inputSchema: {
         query: z
           .string()
-          .min(1)
-          .describe("Keywords or a natural-language question to search for."),
+          .trim()
+          .min(2, QUERY_MIN_MESSAGE)
+          .describe("Keywords or a natural-language question to search for (at least 2 characters)."),
         max_results: z
           .number()
           .int()
@@ -161,8 +165,9 @@ export function registerSearchTools(server: McpServer): void {
       inputSchema: {
         query: z
           .string()
-          .min(1)
-          .describe("Keywords or a natural-language question to search for."),
+          .trim()
+          .min(2, QUERY_MIN_MESSAGE)
+          .describe("Keywords or a natural-language question to search for (at least 2 characters)."),
         num_results: z
           .number()
           .int()
@@ -211,7 +216,7 @@ export function registerSearchTools(server: McpServer): void {
       description: NEWS_DESCRIPTION,
       annotations: { title: "AgentSearch News Search", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
       inputSchema: {
-        query: z.string().min(1).max(400).describe("News topic, company, person or event."),
+        query: z.string().trim().min(2, QUERY_MIN_MESSAGE).max(400).describe("News topic, company, person or event (at least 2 characters)."),
         max_results: z.number().int().min(1).max(10).optional().describe("How many articles to return (1–10, default 5)."),
         ...FILTER_SCHEMA,
       },
