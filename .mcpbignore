@@ -41,3 +41,8 @@
 *.mcpb
 *.tgz
 *.log
+
+# Cursor plugin files (not part of the MCPB bundle)
+.cursor-plugin/
+/skills/
+/mcp.json

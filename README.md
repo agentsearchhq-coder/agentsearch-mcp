@@ -162,6 +162,8 @@ See `.env.example`. Never commit a real `.env`.
 
 ## Cursor
 
+**Cursor plugin:** this repo is also a Cursor plugin (`.cursor-plugin/plugin.json` + `mcp.json` + a web-research skill). It installs the server with free search and the no-wallet trial; add a wallet key only if you want paid tools. To try it locally, clone the repo into `~/.cursor/plugins/local/agentsearch` and restart Cursor.
+
 **Project** (`.cursor/mcp.json`) or **user** (`~/.cursor/mcp.json` / Cursor Settings → MCP):
 
 ```json
