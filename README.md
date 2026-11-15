@@ -191,6 +191,48 @@ Self-hosted instead (no payment), with an optional API key:
 
 ---
 
+## VS Code / GitHub Copilot
+
+Add this to `.vscode/mcp.json` in your workspace (or run **MCP: Open User Configuration** for all workspaces), then use the tools from Copilot Chat in Agent mode. Free search, no key:
+
+```json
+{
+  "servers": {
+    "agentsearch": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@agentsearchhq/agentsearch-mcp"]
+    }
+  }
+}
+```
+
+Or from a terminal:
+
+```bash
+code --add-mcp '{"name":"agentsearch","command":"npx","args":["-y","@agentsearchhq/agentsearch-mcp"]}'
+```
+
+Optional paid extract/render past the free trial: let VS Code prompt for a dedicated wallet key instead of writing it into the file:
+
+```json
+{
+  "inputs": [
+    { "type": "promptString", "id": "agentsearch-wallet", "description": "Dedicated Base wallet key (small USDC balance)", "password": true }
+  ],
+  "servers": {
+    "agentsearch": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@agentsearchhq/agentsearch-mcp"],
+      "env": { "AGENTSEARCH_WALLET_PRIVATE_KEY": "${input:agentsearch-wallet}" }
+    }
+  }
+}
+```
+
+---
+
 ## Cline
 
 Add this to `cline_mcp_settings.json` (VS Code: MCP Servers icon → Configure → Configure MCP Servers). Free search, no key:
