@@ -16,7 +16,7 @@ startCommand:
       searchMode:
         type: string
         default: free
-        description: "Search only: free (default), paid (pay $0.005 per search; needs a wallet key) or auto (paid when a wallet key is set)."
+        description: "Search only: free (default), paid (pay $0.003 per search; needs a wallet key) or auto (paid when a wallet key is set)."
       paymentRoute:
         type: string
         default: direct
