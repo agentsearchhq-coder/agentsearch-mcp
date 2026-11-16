@@ -57,7 +57,7 @@ The two review tools stay free with no configuration. The board is https://revie
 
 ## 3. Optional paid search, extract, and render
 
-Paid calls go to AgentSearch's own [x402](https://x402.org) API on Base (`https://api.agentsearchhq.com`) and pay in USDC: **search $0.003, extract $0.002, render $0.005 per call**, charged only on a successful answer. No AgentSearch account, no API key, and no ETH for gas. The server never signs more than $0.005 per call. To pay $0.005 per call through the [Pocket Network Agentic Portal](https://agent.pocket.network) instead, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"`.
+Paid calls go to AgentSearch's own [x402](https://x402.org) API on Base (`https://api.agentsearchhq.com`) and pay in USDC: **search $0.003, extract $0.002, render $0.005 per call**, charged only on a successful answer. No AgentSearch account, no API key, and no ETH for gas. The server never signs more than $0.020 per call on the default direct route ($0.005 on the Pocket route). To pay $0.005 per call through the [Pocket Network Agentic Portal](https://agent.pocket.network) instead, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"`.
 
 Use a new wallet that holds only what you are willing to spend. The private key is stored in plain text in the Cline config and is used only to sign payments.
 
