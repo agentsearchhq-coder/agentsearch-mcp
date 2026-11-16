@@ -26,4 +26,4 @@ The AgentSearch MCP server (bundled with this plugin) gives you these tools:
 
 ## Paid calls (optional)
 
-Paid tools only run when the user has set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a dedicated wallet holding a little USDC on Base) in the server's environment. Prices per successful call: extract $0.004, search/news $0.008, search_and_read $0.009, render/screenshot $0.010. Never ask the user to paste a private key into chat. Setup: https://github.com/agentsearchhq-coder/agentsearch-mcp#cursor
+Paid tools only run when the user has set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a dedicated wallet holding a little USDC on Base) in the server's environment. Prices per successful call: extract $0.004, search/news $0.005, search_and_read $0.006, render/screenshot $0.005. Never ask the user to paste a private key into chat. Setup: https://github.com/agentsearchhq-coder/agentsearch-mcp#cursor

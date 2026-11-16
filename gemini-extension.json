@@ -11,13 +11,13 @@
   "settings": [
     {
       "name": "Wallet private key",
-      "description": "Optional. Private key of a Base USDC wallet for paid extract ($0.004), render ($0.010) and search_and_read ($0.009) on https://api.agentsearchhq.com. Leave empty for free keyless search and the extract/render trial.",
+      "description": "Optional. Private key of a Base USDC wallet for paid extract ($0.004), render ($0.005) and search_and_read ($0.006) on https://api.agentsearchhq.com. Leave empty for free keyless search and the extract/render trial.",
       "envVar": "AGENTSEARCH_WALLET_PRIVATE_KEY",
       "sensitive": true
     },
     {
       "name": "Search mode",
-      "description": "Optional. free (default, even with a wallet key), paid ($0.008 per search; needs a wallet key), or auto.",
+      "description": "Optional. free (default, even with a wallet key), paid ($0.005 per search; needs a wallet key), or auto.",
       "envVar": "AGENTSEARCH_MODE",
       "sensitive": false
     }

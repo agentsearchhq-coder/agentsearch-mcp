@@ -20,14 +20,14 @@
       "environmentVariables": [
         {
           "name": "AGENTSEARCH_WALLET_PRIVATE_KEY",
-          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.004, render $0.010, search_and_read $0.009). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
+          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.004, render $0.005, search_and_read $0.006). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
           "isRequired": false,
           "isSecret": true,
           "format": "string"
         },
         {
           "name": "AGENTSEARCH_MODE",
-          "description": "Search mode: free (default; free relay even with a wallet key), paid (pay per search, $0.008 direct or $0.005 via Pocket; needs a key) or auto (paid search when a key is set)",
+          "description": "Search mode: free (default; free relay even with a wallet key), paid (pay per search, $0.005 direct or $0.005 via Pocket; needs a key) or auto (paid search when a key is set)",
           "isRequired": false,
           "format": "string",
           "default": "free"
@@ -41,7 +41,7 @@
         },
         {
           "name": "AGENTSEARCH_PAYMENT_ROUTE",
-          "description": "Paid route: direct (default since 1.6.0; AgentSearch's own x402 API on Base, search $0.008, extract $0.004, render $0.010, search_and_read $0.009) or pocket (Pocket Network Agentic Portal, $0.005 per call)",
+          "description": "Paid route: direct (default since 1.6.0; AgentSearch's own x402 API on Base, search $0.005, extract $0.004, render $0.005, search_and_read $0.006) or pocket (Pocket Network Agentic Portal, $0.005 per call)",
           "isRequired": false,
           "format": "string",
           "default": "direct"
