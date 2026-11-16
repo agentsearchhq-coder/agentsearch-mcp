@@ -12,7 +12,7 @@ const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BAS
   "AGENTSEARCH_MAX_TOTAL_ATOMIC", "POCKET_MAX_TOTAL_ATOMIC", "AGENTSEARCH_MAX_PER_CALL_ATOMIC", "POCKET_MAX_PER_CALL_ATOMIC",
   "AGENTSEARCH_PORTAL_URL", "AGENTSEARCH_X402_DIRECT", "AGENTSEARCH_X402_DIRECT_URL", "AGENTSEARCH_PAYMENT_ROUTE"];
 const API = "https://api.agentsearchhq.com";
-const PRICES = { search: "8000", extract: "4000", render: "10000", search_and_read: "9000", news: "8000", screenshot: "10000" };
+const PRICES = { search: "3000", extract: "2000", render: "5000", search_and_read: "5000", news: "3000", screenshot: "4000" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64");
 let saved, realFetch, calls, key;
 
@@ -75,8 +75,8 @@ test("invalid AGENTSEARCH_PAYMENT_ROUTE refuses paid calls without signing", asy
   assert.equal(res.isError, true); assert.match(res.content[0].text, /AGENTSEARCH_PAYMENT_ROUTE must be/);
 });
 
-test("default route with an old $0.005 per-call cap refuses with a clear hint (nothing signed)", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "5000";
+test("default route with a $0.004 per-call cap refuses render with a clear hint (nothing signed)", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "4000";
   mockApi({ op: "render", paid: () => assert.fail("must not pay") });
   const res = await call(await connect(), "agentsearch_render", { url: "https://example.com" });
   assert.equal(res.isError, true);
@@ -135,7 +135,7 @@ test("direct respects lower per-call cap and the session cap", async () => {
   mockApi({ op: "render", paid: () => assert.fail("must not sign") });
   let res = await call(await connect(), "agentsearch_render", { url: "https://example.com" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /above the 4000 atomic/);
-  delete process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC; process.env.AGENTSEARCH_MAX_TOTAL_ATOMIC = "4000";
+  delete process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC; process.env.AGENTSEARCH_MAX_TOTAL_ATOMIC = "2000";
   const payer = privateKeyToAccount(key).address;
   mockApi({ op: "extract", paid: () => okResult({ ok: 1 }, payer) });
   const client = await connect();
@@ -163,7 +163,7 @@ test("direct with no key: extract keeps the free trial path; paid search gives t
   const res = await call(await connect(), "agentsearch_web_search", { query: "qq" });
   // paid mode without key -> pocket path -> setup message (no network); unchanged from 1.4.0
   assert.equal(res.isError, true);
-  assert.ok(DIRECT_SETUP_MESSAGE.includes("$0.008"));
+  assert.ok(DIRECT_SETUP_MESSAGE.includes("$0.003"));
 });
 
 test("direct URL must be https or localhost", async () => {
@@ -187,8 +187,8 @@ test("search_and_read is paid-only and direct-only: no key, pocket route, and se
   assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
 });
 
-test("search_and_read with a $0.008 per-call cap refuses and tells the user to raise it to 20000", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "8000";
+test("search_and_read with a $0.004 per-call cap refuses and tells the user to raise it to 20000", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "4000";
   mockApi({ op: "search_and_read", paid: () => assert.fail("must not pay") });
   const res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true);
@@ -200,7 +200,7 @@ test("no wallet key: search_and_read is not on the free relay", () => {
   assert.equal(backendMode("search_and_read"), "free-relay");
 });
 
-test("1.8.0 news: direct-only, signs $0.008 and forwards filters", async () => {
+test("1.8.0 news: direct-only, signs $0.003 and forwards filters", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   const payer = privateKeyToAccount(key).address; let signed;
   mockApi({ op: "news", paid: (p) => { signed = p; return okResult({ results: [] , topic: "news" }, payer); } });
@@ -208,7 +208,7 @@ test("1.8.0 news: direct-only, signs $0.008 and forwards filters", async () => {
   assert.equal(res.isError, undefined, res.content[0].text);
   assert.equal(calls[0].url, `${API}/x402/v1/news`);
   assert.deepEqual(calls[1].body, { query: "x402", max_results: 7, freshness: "week", include_domains: ["coindesk.com"] });
-  assert.equal(signed.payload.authorization.value, "8000");
+  assert.equal(signed.payload.authorization.value, "3000");
 });
 
 test("1.8.0 paid search and search_and_read forward filters; extract forwards max_chars (capped 50000) and include_links", async () => {
@@ -227,7 +227,7 @@ test("1.8.0 paid search and search_and_read forward filters; extract forwards ma
   assert.deepEqual(calls[1].body, { url: "https://example.com", max_chars: 50000, include_links: false });
 });
 
-test("1.8.0 screenshot: signs $0.010, returns an MCP image block and metadata without base64", async () => {
+test("1.8.0 screenshot: signs $0.004, returns an MCP image block and metadata without base64", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   const payer = privateKeyToAccount(key).address;
   mockApi({ op: "screenshot", paid: () => okResult({ url: "https://example.com/", title: "Example", status_code: 200,
@@ -237,7 +237,7 @@ test("1.8.0 screenshot: signs $0.010, returns an MCP image block and metadata wi
   assert.deepEqual(calls[1].body, { url: "https://example.com", viewport: { width: 390, height: 844 } });
   assert.equal(res.content[0].type, "image"); assert.equal(res.content[0].data, "iVBO"); assert.equal(res.content[0].mimeType, "image/png");
   const meta = JSON.parse(res.content[1].text);
-  assert.equal(meta.payment.amountAtomic, "10000"); assert.equal(meta.response.screenshot.base64, undefined); assert.equal(meta.response.screenshot.width, 390);
+  assert.equal(meta.payment.amountAtomic, "4000"); assert.equal(meta.response.screenshot.base64, undefined); assert.equal(meta.response.screenshot.width, 390);
 });
 
 test("1.8.0 news and screenshot are direct-only: no key, pocket route, and self-hosted refuse without signing", async () => {

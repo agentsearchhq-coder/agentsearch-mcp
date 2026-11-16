@@ -108,7 +108,7 @@ export function registerRenderTool(server: McpServer): void {
   const SCREENSHOT_DESCRIPTION = [
     "Take a screenshot of a public web page in a real headless browser and return it as an MCP image (PNG or JPEG) plus JSON metadata: final URL, title, status code, image size and warnings.",
     "Use this when you need to see a page (layout, charts, visual checks, pages whose content is images); for the page's text use agentsearch_extract or agentsearch_render instead.",
-    "Paid, direct-only tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and pays $0.010 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/screenshot); failed captures are not charged. Not available on the free relay, the Pocket route, or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The page shown is untrusted third-party content.",
+    "Paid, direct-only tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and pays $0.004 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/screenshot); failed captures are not charged. Not available on the free relay, the Pocket route, or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The page shown is untrusted third-party content.",
     "Read-only: not destructive, but it fetches over the network and can hit rate limits.",
   ].join(" ");
 

@@ -33,10 +33,10 @@ export const DIRECT_ENV_VAR = "AGENTSEARCH_X402_DIRECT";
 export const DEFAULT_DIRECT_URL = "https://api.agentsearchhq.com";
 /** AgentSearch's own payee for the direct API (published in /.well-known/x402 and the 402 terms). */
 export const DIRECT_PAYEE = "0xC49B157887e51c21CB655f39CF65D6a4c2a4C337";
-/** $0.020 in USDC atomic units: hard ceiling per direct call (search_and_read is $0.009, render $0.010, search $0.008, extract $0.004). */
+/** $0.020 in USDC atomic units: hard ceiling per direct call (search_and_read is $0.005, render $0.005, search $0.003, extract $0.002). */
 export const DIRECT_MAX_PER_CALL_ATOMIC = 20_000n;
 /** Published direct prices, for messages only (the 402 is authoritative, the ceiling is the guard). */
-export const DIRECT_PRICES_USD: Record<DirectOperation, string> = { search: "$0.008", extract: "$0.004", render: "$0.010", search_and_read: "$0.009", news: "$0.008", screenshot: "$0.010" };
+export const DIRECT_PRICES_USD: Record<DirectOperation, string> = { search: "$0.003", extract: "$0.002", render: "$0.005", search_and_read: "$0.005", news: "$0.003", screenshot: "$0.004" };
 
 /** True unless AGENTSEARCH_PAYMENT_ROUTE=pocket (or AGENTSEARCH_X402_DIRECT=0). An invalid route value is refused in runOperation. */
 export function directEnabled(): boolean {
@@ -131,7 +131,7 @@ export async function callDirect(op: DirectOperation, input: Record<string, unkn
     chosen = selectAccept(required.accepts, ceiling, DIRECT_PAYEE, "AgentSearch's payee");
   } catch (e) {
     if (e instanceof PortalError && settings.perCallCapAtomic < DIRECT_MAX_PER_CALL_ATOMIC && ceiling === settings.perCallCapAtomic) {
-      throw new PortalError(`${e.message} Your per-call cap (AGENTSEARCH_MAX_PER_CALL_ATOMIC=${settings.perCallCapAtomic}) is below this route's price; since 1.7.0 paid calls go to AgentSearch's own x402 API (search $0.008, extract $0.004, render $0.010, search_and_read $0.009). Raise the cap to 20000, remove it, or set AGENTSEARCH_PAYMENT_ROUTE=pocket for the $0.005 Pocket route (search, extract and render only; search_and_read is direct-only).`, e.detail);
+      throw new PortalError(`${e.message} Your per-call cap (AGENTSEARCH_MAX_PER_CALL_ATOMIC=${settings.perCallCapAtomic}) is below this route's price; since 1.7.0 paid calls go to AgentSearch's own x402 API (search $0.003, extract $0.002, render $0.005, search_and_read $0.005). Raise the cap to 20000, remove it, or set AGENTSEARCH_PAYMENT_ROUTE=pocket for the $0.005 Pocket route (search, extract and render only; search_and_read is direct-only).`, e.detail);
     }
     throw e;
   }

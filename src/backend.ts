@@ -15,7 +15,7 @@ export type SearchMode = (typeof SEARCH_MODES)[number];
 /**
  * Search mode from AGENTSEARCH_MODE. Default "free": search uses the free relay even when a wallet key is set,
  * so a key exported for Extract/Render (or inherited from the parent shell) never silently makes search paid.
- * "paid": search pays per call over x402 (direct $0.008 by default, or $0.005 via Pocket; needs a wallet key). "auto": legacy 1.3.0-1.3.4 behavior
+ * "paid": search pays per call over x402 (direct $0.003 by default, or $0.005 via Pocket; needs a wallet key). "auto": legacy 1.3.0-1.3.4 behavior
  * (paid search when a wallet key is set, else free). Returns "invalid" for an unrecognized value.
  */
 export function searchMode(): SearchMode | "invalid" {
