@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { loadReviewsConfig, reviewLookup, reviewSubmit, REVIEW_TASKS, REVIEW_NETWORKS } from "../reviews-client.js";
-import { errorContent, formatResult } from "./search.js";
+import { errorContent, formatResult, toolInput } from "./search.js";
 
 export const REVIEW_LOOKUP_DESCRIPTION = [
   "Look up before choosing a tool: ask the free AgentSearch Review Board which services work right now for a task (search, extract, render, scrape, llm, data, finance, crypto, other) across Pocket Network services, x402 pay-per-call endpoints and remote MCP servers.",
@@ -31,14 +31,14 @@ export function registerReviewTools(server: McpServer): void {
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: toolInput({
         task: z.enum(REVIEW_TASKS).optional().describe("What you need done. Required unless service_id is given."),
         service_id: z.string().min(3).max(300).optional().describe("Get one service's details instead of a ranked list, e.g. pocket:agentsearch-web-search-v1."),
         max_price_usd: z.number().min(0).max(100).optional().describe("Only services priced at or under this per call (unknown prices are included)."),
         network: z.enum(REVIEW_NETWORKS).optional().describe("Limit to Pocket, x402 or MCP services."),
         limit: z.number().int().min(1).max(20).optional().describe("How many services to return (default 5)."),
         include_down: z.boolean().optional().describe("Also return services our probes currently see as down."),
-      },
+      }),
     },
     async (args) => {
       try {
@@ -63,7 +63,7 @@ export function registerReviewTools(server: McpServer): void {
         idempotentHint: false,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: toolInput({
         service_id: z.string().min(3).max(300).describe("Service id from agentsearch_review_lookup, e.g. x402:api.example.com/v1/search."),
         success: z.boolean().describe("Did the call do what you needed?"),
         task: z.enum(REVIEW_TASKS).optional().describe("Task you used it for (defaults to the service's task)."),
@@ -74,7 +74,7 @@ export function registerReviewTools(server: McpServer): void {
         called_at: z.string().max(40).optional().describe("ISO 8601 time of the call (within 7 days; default now)."),
         proof_tx_hash: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional().describe("x402 payment transaction hash on Base, if you paid."),
         pocket_session_id: z.string().min(8).max(128).optional().describe("Pocket session id, if the call went through Pocket."),
-      },
+      }),
     },
     async (args) => {
       try {

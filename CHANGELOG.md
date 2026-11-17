@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.5 (2026-11-17)
+- 1.8.5: security — zod upgraded to 4.6.x (GHSA-mrhx-c7xc-m3w5); no behaviour change. `@x402/core` and `@x402/evm` resolve to 2.31.0, which depends on zod ^4.6.6. An npm override keeps dev-only `@anthropic-ai/mcpb` on that same zod, so the tree has no zod older than 4.6.6.
+
 ## 1.8.4 (2026-11-16)
 - Docs only: README intro: paid search $0.003 per call (was $0.005); manifest.json long description, search and news tool descriptions now say $0.003 for direct paid search/news; llms-install says the direct per-call ceiling is $0.020 ($0.005 on Pocket); .env.example paid search $0.003. Live direct prices: search and news $0.003, extract $0.002, render $0.005, screenshot $0.004, search_and_read $0.005; Pocket route unchanged at $0.005. No code or behavior change.
 

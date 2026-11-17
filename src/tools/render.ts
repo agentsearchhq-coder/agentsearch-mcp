@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { runOperation } from "../backend.js";
-import { PAID_TOOL_SENTENCE, TRIAL_TOOL_SENTENCE } from "./search.js";
+import { PAID_TOOL_SENTENCE, TRIAL_TOOL_SENTENCE, toolInput } from "./search.js";
 
 export const RENDER_DESCRIPTION = [
   "Render one absolute http(s) URL in headless Chromium with AgentSearch Web Render, so JavaScript runs before content is captured, and return the backend response as pretty-printed JSON text (a non-JSON body is wrapped as {raw: text}).",
@@ -27,10 +27,10 @@ export function registerRenderTool(server: McpServer): void {
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: toolInput({
         url: z
           .string()
-          .url()
+          .url({ error: "Invalid url" })
           .max(4096)
           .describe("Absolute public http(s) URL to render (port 80/443)."),
         formats: z
@@ -58,8 +58,7 @@ export function registerRenderTool(server: McpServer): void {
           .boolean()
           .optional()
           .describe("Capture the full page height, clipped to 4000 px (default false)."),
-        viewport: z
-          .object({
+        viewport: toolInput({
             width: z
               .number()
               .int()
@@ -98,7 +97,7 @@ export function registerRenderTool(server: McpServer): void {
           .array(z.enum(["image", "media", "font", "stylesheet"]))
           .optional()
           .describe('Resource types to block while rendering (default ["media","font"]).'),
-      },
+      }),
     },
     async (args) => {
       return runOperation("render", args);
@@ -118,18 +117,17 @@ export function registerRenderTool(server: McpServer): void {
       title: "AgentSearch Screenshot",
       description: SCREENSHOT_DESCRIPTION,
       annotations: { title: "AgentSearch Screenshot", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-      inputSchema: {
-        url: z.string().url().describe("Absolute public http(s) URL of the page."),
+      inputSchema: toolInput({
+        url: z.string().url({ error: "Invalid url" }).describe("Absolute public http(s) URL of the page."),
         format: z.enum(["png", "jpeg"]).optional().describe("Image format (default png)."),
         full_page: z.boolean().optional().describe("Capture the whole page, clipped at 4000 px tall, instead of the viewport (default false)."),
-        viewport: z
-          .object({
+        viewport: toolInput({
             width: z.number().int().min(320).max(1920).optional().describe("Viewport width in px (320–1920, default 1280)."),
             height: z.number().int().min(240).max(1600).optional().describe("Viewport height in px (240–1600, default 800)."),
           })
           .optional()
           .describe("Browser viewport in CSS pixels (e.g. 390x844 for mobile)."),
-      },
+      }),
     },
     async ({ url, format, full_page, viewport }) => {
       return runOperation("screenshot", { url, format, full_page, viewport });
