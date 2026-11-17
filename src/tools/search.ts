@@ -3,6 +3,35 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AgentSearchHttpError, clampMaxResults } from "../client.js";
 import { runOperation } from "../backend.js";
 
+/**
+ * Tool parameter object. Zod 4 leaves `additionalProperties` off an input JSON Schema;
+ * Zod 3 always emitted false. Unknown keys are still stripped, not rejected.
+ */
+export function toolInput<S extends z.core.$ZodLooseShape>(shape: S) {
+  return z.object(shape).meta({ additionalProperties: false });
+}
+
+/**
+ * Unconstrained integer whose JSON Schema is `{type:"integer"}` with no bounds.
+ * Zod 4's `.int()` is a safe integer and would advertise ±(2^53-1); Zod 3 did not.
+ * Runtime checks stay Zod 4's (safe integers). Tighter `.min()`/`.max()` are unchanged.
+ */
+function unconstrainedInt() {
+  const schema = z.number().int();
+  const orig = schema._zod.processJSONSchema;
+  if (orig) {
+    schema._zod.processJSONSchema = (ctx, json, params) => {
+      orig(ctx, json, params);
+      if (json.minimum === Number.MIN_SAFE_INTEGER) delete json.minimum;
+      if (json.maximum === Number.MAX_SAFE_INTEGER) delete json.maximum;
+    };
+  }
+  return schema;
+}
+
+/** Same wording Zod 3 used for `.url()`, so a bad URL still fails with "Invalid url". */
+const urlString = () => z.string().url({ error: "Invalid url" });
+
 /** The API rejects queries shorter than 2 characters (HTTP 400 QUERY_TOO_SHORT); catch it before any request. */
 export const QUERY_MIN_MESSAGE = "Query must be at least 2 characters. Rewrite the query with real keywords instead of retrying it unchanged.";
 
@@ -88,19 +117,17 @@ export function registerSearchTools(server: McpServer): void {
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: toolInput({
         query: z
           .string()
           .trim()
           .min(2, QUERY_MIN_MESSAGE)
           .describe("Keywords or a natural-language question to search for (at least 2 characters)."),
-        max_results: z
-          .number()
-          .int()
+        max_results: unconstrainedInt()
           .optional()
           .describe("How many hits to request (1–5, default 5). Values outside that range are clamped."),
         ...FILTER_SCHEMA,
-      },
+      }),
     },
     async ({ query, max_results, ...rest }) => {
       return runOperation("search", { query, max_results: clampMaxResults(max_results), ...pickFilters(rest) });
@@ -119,8 +146,8 @@ export function registerSearchTools(server: McpServer): void {
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
-        url: z.string().url().describe("Absolute URL of the page to extract."),
+      inputSchema: toolInput({
+        url: urlString().describe("Absolute URL of the page to extract."),
         formats: z
           .array(z.enum(["markdown", "text"]))
           .optional()
@@ -136,7 +163,7 @@ export function registerSearchTools(server: McpServer): void {
           .boolean()
           .optional()
           .describe("Return the page's links (default true). Set false to save tokens (direct x402 route)."),
-      },
+      }),
     },
     async ({ url, formats, max_chars, include_links }) => {
       return runOperation("extract", { url, formats, max_chars, include_links });
@@ -162,7 +189,7 @@ export function registerSearchTools(server: McpServer): void {
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: toolInput({
         query: z
           .string()
           .trim()
@@ -194,7 +221,7 @@ export function registerSearchTools(server: McpServer): void {
           .optional()
           .describe("If true, retry at most one empty or thin page in a headless browser (default false)."),
         ...FILTER_SCHEMA,
-      },
+      }),
     },
     async ({ query, num_results, max_results, max_chars, render_fallback, ...rest }) => {
       return runOperation("search_and_read", { query, num_results, max_results, max_chars, render_fallback, ...pickFilters(rest) });
@@ -215,11 +242,11 @@ export function registerSearchTools(server: McpServer): void {
       title: "AgentSearch News Search",
       description: NEWS_DESCRIPTION,
       annotations: { title: "AgentSearch News Search", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-      inputSchema: {
+      inputSchema: toolInput({
         query: z.string().trim().min(2, QUERY_MIN_MESSAGE).max(400).describe("News topic, company, person or event (at least 2 characters)."),
         max_results: z.number().int().min(1).max(10).optional().describe("How many articles to return (1–10, default 5)."),
         ...FILTER_SCHEMA,
-      },
+      }),
     },
     async ({ query, max_results, ...rest }) => {
       return runOperation("news", { query, max_results, ...pickFilters(rest) });
