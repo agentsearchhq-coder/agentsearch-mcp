@@ -44,8 +44,8 @@ export function directEnabled(): boolean {
 }
 
 export const DIRECT_SETUP_MESSAGE = [
-  "This paid call needs a wallet: no wallet key is configured (agentsearch_web_search is free by default and only pays when AGENTSEARCH_MODE=paid or auto).",
-  "Set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, fund it with a little USDC on Base (no ETH needed), and restart the client.",
+  "This paid call needs a wallet: no wallet key or wallet file is configured (agentsearch_web_search stays on the free tier without a wallet).",
+  "Set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, or AGENTSEARCH_WALLET_FILE to an existing wallet file (AGENTSEARCH_WALLET_FILE=agentcash reuses ~/.agentcash/wallet.json), fund it with a little USDC on Base (no ETH needed), and restart the client.",
   `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render}, search_and_read ${DIRECT_PRICES_USD.search_and_read}, news ${DIRECT_PRICES_USD.news}, screenshot ${DIRECT_PRICES_USD.screenshot} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.020 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Search + Read, News and Screenshot are direct-only.`,
   "Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
   "Wallet setup takes about 2 minutes: https://agentsearchhq.com/wallet-setup",

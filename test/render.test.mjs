@@ -160,13 +160,13 @@ test("rejects invalid input before any network call", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("versions are consistent at 1.8.5 across package metadata", () => {
+test("versions are consistent at 1.9.0 across package metadata", () => {
   const read = (f) => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   const text = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
   const pkg = read("package.json");
   const manifest = read("manifest.json");
   const serverJson = read("server.json");
-  assert.equal(pkg.version, "1.8.5");
+  assert.equal(pkg.version, "1.9.0");
   assert.equal(SERVER_VERSION, pkg.version);
   assert.equal(manifest.version, pkg.version);
   assert.equal(serverJson.version, pkg.version);
@@ -177,10 +177,12 @@ test("versions are consistent at 1.8.5 across package metadata", () => {
     "https://agentsearchhq.com/?utm_source=mcp-registry&utm_medium=directory&utm_campaign=listing"
   );
   assert.ok(serverJson.description.length <= 100);
-  // 1.3.5: AGENTSEARCH_MODE (free|paid|auto, search only) is documented; default is free.
-  assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_MODE").default, "free");
+  // 1.9.0: AGENTSEARCH_MODE default is auto (paid search with a wallet, free without); free is the opt-out.
+  assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_MODE").default, "auto");
+  assert.ok(serverJson.packages[0].environmentVariables.some((v) => v.name === "AGENTSEARCH_WALLET_FILE"));
   assert.equal(serverJson.packages[0].environmentVariables.find((v) => v.name === "AGENTSEARCH_BASE_URL").isRequired, false);
-  assert.equal(manifest.user_config.AGENTSEARCH_MODE.default, "free");
+  assert.equal(manifest.user_config.AGENTSEARCH_MODE.default, "");
+  assert.equal(manifest.server.mcp_config.env.AGENTSEARCH_WALLET_FILE, "${user_config.AGENTSEARCH_WALLET_FILE}");
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.required, false);
   assert.equal(manifest.user_config.AGENTSEARCH_BASE_URL.default, undefined);
   assert.ok(manifest.tools.some((t) => t.name === "agentsearch_render"));

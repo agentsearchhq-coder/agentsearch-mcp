@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.0 (2026-11-19)
+- **With a wallet, search pays by default.** `AGENTSEARCH_MODE` now defaults to `auto`: when a wallet is configured, `agentsearch_web_search` pays $0.003 per call to AgentSearch's direct x402 API ($0.005 on `AGENTSEARCH_PAYMENT_ROUTE=pocket`). With no wallet, search uses the free relay exactly as before. `AGENTSEARCH_MODE=free` is the opt-out (free tier even with a wallet); `paid` still always pays. 1.3.5–1.8.x defaulted to `free`. Spend caps are unchanged ($0.020 per call on the direct route, `AGENTSEARCH_MAX_TOTAL_ATOMIC` per session, default $1.00).
+- **Reuse an existing wallet:** new `AGENTSEARCH_WALLET_FILE` points at a file holding a 64-hex key or JSON with `privateKey` (AgentCash's `~/.agentcash/wallet.json`; the value `agentcash` is a shortcut). The file is read only when signing and never logged. Encrypted keystores and remote signers (CDP server wallets) are a follow-up.
+- **Mode is visible:** the stderr startup line says `search mode: free: …` or `search mode: paid: …`, and every search result carries an `agentsearch_mode` field.
+- Metadata: `server.json` and `smithery.yaml` default `AGENTSEARCH_MODE` to `auto`; the Claude Desktop extension's search-mode field defaults to blank (auto); new wallet-file field.
+
 ## 1.8.5 (2026-11-17)
 - 1.8.5: security — zod upgraded to 4.6.x (GHSA-mrhx-c7xc-m3w5); no behaviour change. `@x402/core` and `@x402/evm` resolve to 2.31.0, which depends on zod ^4.6.6. An npm override keeps dev-only `@anthropic-ai/mcpb` on that same zod, so the tree has no zod older than 4.6.6.
 

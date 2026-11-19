@@ -50,8 +50,11 @@ test("1.7.0 default: with a wallet key the paid rail is AgentSearch's direct x40
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   assert.equal(backendMode("extract"), "direct");
   assert.equal(backendMode("render"), "direct");
-  assert.equal(backendMode("search"), "free-relay"); // search stays free by default
+  assert.equal(backendMode("search"), "direct"); // 1.9.0: a wallet makes search paid by default
   assert.equal(backendMode("search_and_read"), "direct");
+  process.env.AGENTSEARCH_MODE = "free"; // explicit opt-out keeps search free
+  assert.equal(backendMode("search"), "free-relay");
+  delete process.env.AGENTSEARCH_MODE;
   process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
   assert.equal(backendMode("extract"), "pocket");
   assert.equal(backendMode("search_and_read"), "pocket"); // refused later as direct-only
@@ -84,12 +87,14 @@ test("default route with a $0.004 per-call cap refuses render with a clear hint 
   assert.equal(calls.filter((c) => c.sig).length, 0);
 });
 
-test("direct opt-in swaps only the paid rail; search stays free unless AGENTSEARCH_MODE=paid; base URL still wins", () => {
+test("direct opt-in swaps only the paid rail; with a wallet search is paid unless AGENTSEARCH_MODE=free; base URL still wins", () => {
   process.env.AGENTSEARCH_X402_DIRECT = "1";
   assert.equal(backendMode("extract"), "free-relay"); // no key -> free trial as before
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
   assert.equal(backendMode("extract"), "direct");
   assert.equal(backendMode("render"), "direct");
+  assert.equal(backendMode("search"), "direct");
+  process.env.AGENTSEARCH_MODE = "free";
   assert.equal(backendMode("search"), "free-relay");
   process.env.AGENTSEARCH_MODE = "paid";
   assert.equal(backendMode("search"), "direct");

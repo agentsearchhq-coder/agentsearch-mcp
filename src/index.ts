@@ -6,8 +6,8 @@
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { backendMode, searchMode } from "./backend.js";
-import { hasWalletKey } from "./pocket.js";
+import { backendMode, searchMode, searchModeLabel } from "./backend.js";
+import { walletSource } from "./pocket.js";
 import { paidRoute } from "./route.js";
 import { loadReviewsConfig } from "./reviews-client.js";
 import { createServer } from "./server.js";
@@ -21,20 +21,21 @@ async function main(): Promise<void> {
   // stdout is reserved for MCP JSON-RPC; log to stderr only
   // Never log the wallet key; only the mode.
   const search = backendMode("search");
+  const extract = backendMode("extract");
   const base =
     search === "self-hosted"
       ? `base=${process.env.AGENTSEARCH_BASE_URL!.trim().replace(/\/+$/, "")}`
       : searchMode() === "invalid"
-        ? "AGENTSEARCH_MODE is invalid (use free, paid or auto): search calls will return an error until it is fixed"
+        ? "AGENTSEARCH_MODE is invalid (use auto, free or paid): search calls will return an error until it is fixed"
         : paidRoute() === "invalid"
           ? "AGENTSEARCH_PAYMENT_ROUTE is invalid (use direct or pocket): paid calls will return an error until it is fixed"
-        : search === "direct" || (search === "free-relay" && backendMode("extract") === "direct" && hasWalletKey())
-          ? `paid route: AgentSearch's own x402 API on Base (search $0.003 when AGENTSEARCH_MODE=paid, extract $0.002, render $0.005; AGENTSEARCH_PAYMENT_ROUTE=pocket for the Pocket portal)${search === "direct" ? "" : "; search stays on the free tier"}`
-        : search === "pocket"
-          ? "search: pay-per-call via Pocket portal (x402, USDC on Base, AGENTSEARCH_PAYMENT_ROUTE=pocket) because AGENTSEARCH_MODE opts in; extract/render pay per call too"
-          : hasWalletKey()
-            ? "search: AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity; set AGENTSEARCH_MODE=paid to pay for search); extract/render: pay-per-call via Pocket portal (x402, USDC on Base, AGENTSEARCH_PAYMENT_ROUTE=pocket)"
-            : "no wallet key or AGENTSEARCH_BASE_URL: search uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity); extract/render: free trial (5/3 calls per day per IP) unless AGENTSEARCH_FREE_TRIAL=0";
+          : `search mode: ${searchModeLabel()}; extract/render: ${
+              extract === "direct"
+                ? `paid via AgentSearch's own x402 API on Base (extract $0.002, render $0.005; wallet from ${walletSource()})`
+                : extract === "pocket"
+                  ? `paid via the Pocket portal ($0.005 per call; wallet from ${walletSource()})`
+                  : "free trial (5/3 calls per day per IP) unless AGENTSEARCH_FREE_TRIAL=0"
+            }`;
   console.error(
     `agentsearch-mcp listening on stdio (${base}; reviews=${loadReviewsConfig().baseUrl})`
   );

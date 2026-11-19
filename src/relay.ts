@@ -22,7 +22,7 @@ export function freeTrialEnabled(): boolean {
 }
 
 const ADD_WALLET =
-  "To add a wallet: set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config, fund it with a little USDC on Base (for example $1; no ETH needed), and restart the client. A wallet key alone enables Extract and Render; search stays on the free tier unless you also set AGENTSEARCH_MODE=paid.";
+  "To add a wallet: set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config (or AGENTSEARCH_WALLET_FILE to reuse an existing wallet file; AGENTSEARCH_WALLET_FILE=agentcash reuses ~/.agentcash/wallet.json), fund it with a little USDC on Base (for example $1; no ETH needed), and restart the client. With a wallet configured, search, Extract and Render pay per call (set AGENTSEARCH_MODE=free to keep search on the free tier).";
 
 export const FREE_RELAY_LIMIT_MESSAGE = [
   `Free search limit reached: the AgentSearch free tier allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
@@ -48,7 +48,7 @@ export function paidOnlyMessage(tool: "agentsearch_extract" | "agentsearch_rende
 /** Limit message when a wallet is already configured: only the search mode needs to change. */
 export const FREE_RELAY_LIMIT_MESSAGE_WITH_WALLET = [
   `Free search limit reached: the AgentSearch free tier allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
-  "A wallet key is configured, but search is in free mode (the default). To pay per search call instead ($0.003 on the default direct route, $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket; capped per call and by AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00), set AGENTSEARCH_MODE=paid in the env block of this MCP server and restart the client.",
+  "A wallet is configured, but search is in free mode because AGENTSEARCH_MODE=free. To pay per search call instead ($0.003 on the default direct route, $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket; capped per call and by AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00), remove AGENTSEARCH_MODE (or set it to auto or paid) in the env block of this MCP server and restart the client.",
 ].join(" ");
 
 /** Message when the relay's extract/render free trial is used up (HTTP 429). relayMessage is the relay's own reason, if any. */

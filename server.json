@@ -8,29 +8,35 @@
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.8.5",
+  "version": "1.9.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.8.5",
+      "version": "1.9.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "AGENTSEARCH_WALLET_PRIVATE_KEY",
-          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.002, render $0.005, search_and_read $0.005). Without it, extract/render use the free trial (5/3 calls per day per IP). Search stays free unless AGENTSEARCH_MODE=paid. Alias: POCKET_PRIVATE_KEY",
+          "description": "Private key of a dedicated wallet with a little USDC on Base; enables paid extract/render via x402, paid to AgentSearch's own API by default (extract $0.002, render $0.005, search_and_read $0.005). Search pays too ($0.003) unless AGENTSEARCH_MODE=free. Without it, search is free and extract/render use the free trial (5/3 calls per day per IP). Alias: POCKET_PRIVATE_KEY",
           "isRequired": false,
           "isSecret": true,
           "format": "string"
         },
         {
+          "name": "AGENTSEARCH_WALLET_FILE",
+          "description": "Optional. Reuse an existing wallet file instead of pasting a key: a file holding a 64-hex key or JSON with privateKey; 'agentcash' means ~/.agentcash/wallet.json",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
           "name": "AGENTSEARCH_MODE",
-          "description": "Search mode: free (default; free relay even with a wallet key), paid (pay per search, $0.003 direct or $0.005 via Pocket; needs a key) or auto (paid search when a key is set)",
+          "description": "Search mode: auto (default; pays per search, $0.003 direct or $0.005 via Pocket, when a wallet is set, else free), free (free relay even with a wallet) or paid (always pay; needs a wallet)",
           "isRequired": false,
           "format": "string",
-          "default": "free"
+          "default": "auto"
         },
         {
           "name": "AGENTSEARCH_FREE_TRIAL",
