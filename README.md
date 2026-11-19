@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com
 
 - **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the AgentSearch free tier (`https://relay.agentsearchhq.com/v1/search`): **up to 25 searches/day per IP, subject to shared daily capacity**, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
 - **Extract and render free trial, no wallet (new in 1.4.0):** with no wallet key, `agentsearch_extract` (**5 calls/day per IP**) and `agentsearch_render` (**3 calls/day per IP**, text output, no screenshots) use the AgentSearch free trial on the same relay. Past it they return HTTP 429 with [wallet setup](https://agentsearchhq.com/wallet-setup?utm_source=github&utm_medium=readme&utm_campaign=mcp) steps. Set `AGENTSEARCH_FREE_TRIAL=0` to turn the trial off.
-- **Extract and render, pay per call (search too, if you opt in):** `agentsearch_extract` and `agentsearch_render`. Add a wallet key and these pay **AgentSearch's own x402 API** on Base (`https://api.agentsearchhq.com`) in USDC: **extract $0.002, render $0.005 per call**, charged only when a usable answer comes back. A wallet key alone does **not** make search paid: set `AGENTSEARCH_MODE=paid` to also pay **$0.003 per search call**. No account, no API key, no ETH for gas. The [Pocket Network Agentic Portal](https://agent.pocket.network) route ($0.005 per call) is still available with `AGENTSEARCH_PAYMENT_ROUTE=pocket` for search, extract and render. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
+- **Pay per call once you add a wallet (search, extract, render):** `agentsearch_web_search`, `agentsearch_extract` and `agentsearch_render`. Add a wallet key (or point `AGENTSEARCH_WALLET_FILE` at an existing wallet file) and these pay **AgentSearch's own x402 API** on Base (`https://api.agentsearchhq.com`) in USDC: **search $0.003, extract $0.002, render $0.005 per call**, charged only when a usable answer comes back. **New in 1.9.0:** with a wallet configured, search pays $0.003 per call by default (no shared free-tier limit); set `AGENTSEARCH_MODE=free` to keep search on the free tier. Every search result has an `agentsearch_mode` field saying whether it was free or paid. No account, no API key, no ETH for gas. The [Pocket Network Agentic Portal](https://agent.pocket.network) route ($0.005 per call) is still available with `AGENTSEARCH_PAYMENT_ROUTE=pocket` for search, extract and render. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
 - **Search + Read, one paid call (new in 1.7.0):** `agentsearch_search_and_read` searches the live web and returns the top pages as markdown for **$0.005**, versus **$0.009** as one search plus three extracts, and one payment instead of four. Charged only when at least one page has text. Direct-only (not on Pocket or the free relay). Needs a wallet key. Docs: [Search + Read](https://agentsearchhq.com/search-and-read?utm_source=github&utm_medium=readme&utm_campaign=mcp).
 - **News search and page screenshots, pay per call (new in 1.8.0):** `agentsearch_news_search` returns recent articles with publish dates for **$0.003**, and `agentsearch_screenshot` returns a PNG/JPEG of any public page as an MCP image for **$0.004** (viewport or full page, mobile sizes supported). Paid web search, news and Search + Read also take **filters**: `freshness` (day/week/month/year) or `date_from`/`date_to`, `country`, `language`, `include_domains`, `exclude_domains`. Extract takes `include_links: false` to save tokens. Direct-only; needs a wallet key.
 - **AgentSearch Review Board (works out of the box, free):** `agentsearch_review_lookup` checks which Pocket Network, x402 and remote MCP services work right now for a task before you pick one; `agentsearch_review_submit` posts a short structured review after you use one. No configuration or key needed; the board is at https://reviews.agentsearchhq.com.
@@ -21,12 +21,14 @@ npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immedi
 |--------|--------------------------|-----------------------------------------------|
 | Nothing set (default) | Free tier, up to 25 searches/day per IP, subject to shared daily capacity | Free trial: 5 extract / 3 render calls per day per IP, then a 429 with wallet setup steps |
 | `AGENTSEARCH_FREE_TRIAL=0` (no wallet) | Free tier | Return a message with how to add a wallet; no network call |
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Still free (free tier, up to 25 searches/day per IP) | Paid via AgentSearch's x402 API (extract $0.002, render $0.005) |
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` + `AGENTSEARCH_MODE=paid` | Paid, $0.003 per call via AgentSearch's x402 API | Paid via AgentSearch's x402 API |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` or `AGENTSEARCH_WALLET_FILE` (1.9.0+) | Paid, $0.003 per call via AgentSearch's x402 API | Paid via AgentSearch's x402 API (extract $0.002, render $0.005) |
+| ...plus `AGENTSEARCH_MODE=free` | Free tier (up to 25 searches/day per IP) | Paid via AgentSearch's x402 API |
 | ...plus `AGENTSEARCH_PAYMENT_ROUTE=pocket` | Paid search goes through the Pocket portal ($0.005) | Paid via the Pocket portal ($0.005) |
 | `AGENTSEARCH_BASE_URL` (takes precedence) | Your self-hosted API | Your self-hosted API |
 
-To use paid Extract/Render, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet with a little USDC on Base) in this server's `env` and restart your client.
+To pay per call, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet with a little USDC on Base) in this server's `env` and restart your client. The startup log (stderr) prints the active search mode, for example `search mode: paid: x402 to AgentSearch's API, $0.003 per search (wallet configured; AGENTSEARCH_MODE=free keeps search free)`.
+
+**Reuse a wallet you already have (1.9.0+).** Instead of pasting a key, set `AGENTSEARCH_WALLET_FILE` to a file that holds a 64-hex private key, or JSON with a `privateKey` field. `AGENTSEARCH_WALLET_FILE=agentcash` reuses AgentCash's `~/.agentcash/wallet.json`. The file is read only when signing; its contents are never logged. Encrypted keystores and remote signers (CDP server wallets) are not supported yet.
 
 ### How the paid mode works (default: AgentSearch's direct x402 API, since 1.6.0)
 
@@ -37,7 +39,7 @@ To use paid Extract/Render, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet w
 | `agentsearch_render` | `POST https://api.agentsearchhq.com/x402/v1/render` | $0.005 |
 | `agentsearch_news_search` | `POST https://api.agentsearchhq.com/x402/v1/news` | $0.003 |
 | `agentsearch_screenshot` | `POST https://api.agentsearchhq.com/x402/v1/screenshot` | $0.004 |
-| `agentsearch_web_search` (only with `AGENTSEARCH_MODE=paid`) | `POST https://api.agentsearchhq.com/x402/v1/search` | $0.003 |
+| `agentsearch_web_search` (with a wallet, unless `AGENTSEARCH_MODE=free`) | `POST https://api.agentsearchhq.com/x402/v1/search` | $0.003 |
 
 The request is sent unpaid; the API answers `402` with x402 v2 terms. The server checks every limit before signing (scheme `exact`, USDC on Base, AgentSearch's pinned payee `0xC49B157887e51c21CB655f39CF65D6a4c2a4C337`, at most $0.020 per call, session cap), signs once, and retries with `PAYMENT-SIGNATURE`. The API settles only after a successful, non-empty answer. On the direct route, extract takes `url`, `max_chars` (up to 50000) and `include_links`; render takes only `url` (extra options such as `formats` or `screenshot` are dropped and listed under `dropped`; use `agentsearch_screenshot` for images); search, news and Search + Read take the filters above. Discovery: [`/.well-known/x402`](https://api.agentsearchhq.com/.well-known/x402), [`/openapi.json`](https://api.agentsearchhq.com/openapi.json); docs: <https://agentsearchhq.com/docs/x402>.
 
@@ -132,7 +134,7 @@ The image starts the MCP server on stdio with the same default as `npx`: free ke
 ```bash
 docker build -t agentsearch-mcp .
 docker run --rm -i agentsearch-mcp
-# optional paid extract/render (and search if AGENTSEARCH_MODE=paid)
+# optional pay per call (search, extract, render; add -e AGENTSEARCH_MODE=free to keep search free)
 docker run --rm -i -e AGENTSEARCH_WALLET_PRIVATE_KEY agentsearch-mcp
 ```
 
@@ -147,6 +149,8 @@ A [`gemini-extension.json`](gemini-extension.json) is in the repo root. Install 
 | Variable | Required | Notes |
 |----------|----------|--------|
 | `AGENTSEARCH_WALLET_PRIVATE_KEY` | no | Without it, search uses the free tier (up to 25 searches/day per IP, subject to shared daily capacity) and extract/render are unavailable. Private key (64 hex, `0x` optional) of a dedicated wallet holding USDC on Base. Enables paid mode. Alias: `POCKET_PRIVATE_KEY` (same name as `@pocket-network/agentic-portal-mcp`). |
+| `AGENTSEARCH_WALLET_FILE` | no | 1.9.0+. Reuse an existing wallet file instead of pasting a key: a file with a 64-hex key, or JSON with `privateKey` (`agentcash` = `~/.agentcash/wallet.json`). |
+| `AGENTSEARCH_MODE` | no | Search only. `auto` (default from 1.9.0): pay $0.003 per search when a wallet is configured, free tier when none is. `free`: free tier even with a wallet. `paid`: always pay (needs a wallet). |
 | `AGENTSEARCH_MAX_TOTAL_ATOMIC` | no | Session spend cap in USDC atomic units. Default `1000000` ($1.00). Alias: `POCKET_MAX_TOTAL_ATOMIC`. |
 | `AGENTSEARCH_MAX_PER_CALL_ATOMIC` | no | Lower per-call cap; default and maximum `20000` ($0.020) on the direct route, `5000` ($0.005) on the Pocket route. Alias: `POCKET_MAX_PER_CALL_ATOMIC`. |
 | `AGENTSEARCH_PAYMENT_ROUTE` | no | `direct` (default since 1.6.0: AgentSearch's own x402 API) or `pocket` (Pocket Network Agentic Portal, $0.005 per call). The 1.5.0 switch `AGENTSEARCH_X402_DIRECT=0` also selects `pocket`. |
@@ -175,7 +179,7 @@ See `.env.example`. Never commit a real `.env`.
       "env": {
         "AGENTSEARCH_WALLET_PRIVATE_KEY": "0x…",
         "AGENTSEARCH_MAX_TOTAL_ATOMIC": "1000000"
-        // add "AGENTSEARCH_MODE": "paid" only if you also want search to be paid
+        // search pays $0.003 too; add "AGENTSEARCH_MODE": "free" to keep search free
       }
     }
   }
@@ -258,7 +262,7 @@ Or with the Cline CLI:
 cline mcp add agentsearch --yes -- npx -y @agentsearchhq/agentsearch-mcp
 ```
 
-For paid Extract/Render, add an `env` block with `AGENTSEARCH_WALLET_PRIVATE_KEY` as in the Cursor example; search stays free unless you also set `AGENTSEARCH_MODE=paid`. Full guide: [Add free web search to Cline with MCP](https://agentsearchhq.com/blog/add-web-search-to-cline-mcp).
+For pay-per-call tools, add an `env` block with `AGENTSEARCH_WALLET_PRIVATE_KEY` as in the Cursor example; from 1.9.0 search pays too ($0.003) unless you also set `AGENTSEARCH_MODE=free`. Full guide: [Add free web search to Cline with MCP](https://agentsearchhq.com/blog/add-web-search-to-cline-mcp).
 
 ---
 
@@ -276,7 +280,7 @@ Notes:
 - `--` separates Claude Code's flags from the server command.
 - Add `--scope project` to write a shareable `.mcp.json`, or `--scope user` for every project. The default scope is `local` (only you, this project).
 - Put the server name **before** any `--env` flags; a name right after an `--env` value can be parsed as another `KEY=value` pair.
-- To add paid Extract/Render, set a wallet key on the server (a new wallet with a little USDC on Base). From 1.3.5 search stays free unless you also set `AGENTSEARCH_MODE=paid`:
+- To pay per call, set a wallet key on the server (a new wallet with a little USDC on Base). From 1.9.0 search pays too ($0.003) unless you also add `--env AGENTSEARCH_MODE=free`:
 
 ```bash
 claude mcp add agentsearch-paid \
@@ -285,7 +289,7 @@ claude mcp add agentsearch-paid \
   -- npx -y @agentsearchhq/agentsearch-mcp
 ```
 
-- On 1.3.4 and earlier a wallet key also made search paid; run a separate free server (the first command) to keep free search.
+- 1.3.5–1.8.x kept search free with a wallet unless `AGENTSEARCH_MODE=paid`; 1.9.0 makes paid search the default with a wallet.
 - Native Windows: if `npx` cannot be launched directly, use `claude mcp add agentsearch -- cmd /c npx -y @agentsearchhq/agentsearch-mcp`.
 
 ---
@@ -363,7 +367,7 @@ In 1.5.0 the direct x402 API was opt-in (`AGENTSEARCH_X402_DIRECT=1`). **From 1.
 
 To keep paying $0.005 through the Pocket Network Agentic Portal, add `"AGENTSEARCH_PAYMENT_ROUTE": "pocket"` (or keep `"AGENTSEARCH_X402_DIRECT": "0"`). If you set `AGENTSEARCH_MAX_PER_CALL_ATOMIC=5000` or `10000` from an older release, raise it to `20000` or remove it, or Search + Read (and any tool above your cap) will refuse (nothing is signed).
 
-Unchanged: free search with no wallet, the no-wallet extract/render free trial, search staying free unless `AGENTSEARCH_MODE=paid`, self-hosted mode, and the review tools.
+Unchanged: free search with no wallet, the no-wallet extract/render free trial, self-hosted mode, and the review tools. (From 1.9.0, search with a wallet pays $0.003 unless `AGENTSEARCH_MODE=free`.)
 
 ---
 

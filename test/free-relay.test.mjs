@@ -38,8 +38,11 @@ test("default mode with no config is the free relay", () => {
   assert.equal(backendMode(), "free-relay");
   assert.equal(backendMode("extract"), "free-relay");
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
-  // 1.3.5: a wallet key alone no longer makes search paid; it only enables extract/render.
+  // 1.9.0: a wallet makes search paid by default (1.3.5-1.8.x kept it free); AGENTSEARCH_MODE=free opts out.
+  assert.equal(backendMode(), "pocket");
+  process.env.AGENTSEARCH_MODE = "free";
   assert.equal(backendMode(), "free-relay");
+  delete process.env.AGENTSEARCH_MODE;
   assert.equal(backendMode("extract"), "pocket");
   assert.equal(backendMode("render"), "pocket");
   process.env.AGENTSEARCH_BASE_URL = "https://self.test";
@@ -47,10 +50,11 @@ test("default mode with no config is the free relay", () => {
   assert.equal(backendMode("extract"), "self-hosted");
 });
 
-test("AGENTSEARCH_MODE: free by default, paid and auto are explicit opt-ins, junk is invalid", () => {
-  assert.equal(searchMode(), "free");
+test("AGENTSEARCH_MODE: auto by default (paid only with a wallet), free is the opt-out, junk is invalid", () => {
+  assert.equal(searchMode(), "auto");
+  assert.equal(backendMode(), "free-relay"); // no wallet -> free relay, exactly as before
   process.env.AGENTSEARCH_MODE = "  ";
-  assert.equal(searchMode(), "free");
+  assert.equal(searchMode(), "auto");
   process.env.AGENTSEARCH_MODE = "FREE";
   assert.equal(backendMode(), "free-relay");
   process.env.AGENTSEARCH_MODE = "paid";
@@ -96,22 +100,31 @@ test("free relay 5xx is reported as an error, not the limit message", async () =
   assert.doesNotMatch(r.content[0].text, /limit reached/);
 });
 
-test("wallet key set, default mode: search still uses the free relay and never contacts the portal", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
+test("wallet key set, AGENTSEARCH_MODE=free: search still uses the free relay and never contacts the portal", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY; process.env.AGENTSEARCH_MODE = "free";
   mock(200, { query: "qq", result_count: 0, results: [] });
   const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, undefined);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/search`);
   assert.equal(calls[0].init.headers["PAYMENT-SIGNATURE"], undefined);
+  assert.match(JSON.parse(r.content[0].text).agentsearch_mode, /^free: .*AGENTSEARCH_MODE=free/);
 });
 
-test("wallet key set, default mode: free relay 429 tells the user to set AGENTSEARCH_MODE=paid", async () => {
+test("wallet key set, default mode: search pays (never the free relay)", async () => {
   process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
+  mock(500, "portal down");
+  await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
+  assert.ok(calls.length >= 1);
+  for (const c of calls) assert.ok(!c.url.startsWith(FREE_RELAY_URL), c.url);
+});
+
+test("wallet key set, AGENTSEARCH_MODE=free: free relay 429 tells the user to remove the opt-out", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY; process.env.AGENTSEARCH_MODE = "free";
   mock(429, { detail: "rate limited" });
   const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
-  assert.match(r.content[0].text, /AGENTSEARCH_MODE=paid/);
+  assert.match(r.content[0].text, /remove AGENTSEARCH_MODE/);
   assert.match(r.content[0].text, /up to 25 searches\/day per IP, subject to shared daily capacity/);
   assert.doesNotMatch(r.content[0].text, /Upgrade to paid search/);
 });
@@ -169,7 +182,7 @@ test("tool metadata: free-first search description, no relay hostname, annotatio
     }
   }
   const search = tools.find((x) => x.name === "agentsearch_web_search");
-  assert.match(search.description, /^Search the web[^]*Free by default/);
+  assert.match(search.description, /^Search the web[^]*Free with no wallet[^]*AGENTSEARCH_MODE=free keeps search free/);
   assert.doesNotMatch(search.description, /Default mode: calls the Pocket Network Agentic Portal and PAYS/);
   assert.match(search.description, /up to 25 searches\/day per IP, subject to shared daily capacity/);
   assert.match(tools.find((x) => x.name === "agentsearch_extract").description, /Paid tool/);
@@ -184,7 +197,7 @@ test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, c
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
   assert.equal(calls[0].body.url, "https://example.com/");
   assert.equal(calls[0].init.headers.authorization, undefined);
-  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1.8.5$/);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1.9.0$/);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.title, "Example Domain");
   assert.equal(data.free_trial.remaining_today, 4);

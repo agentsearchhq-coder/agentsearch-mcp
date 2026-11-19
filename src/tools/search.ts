@@ -62,13 +62,13 @@ export function errorContent(err: unknown): {
 }
 
 export const SEARCH_COST_SENTENCE =
-  "Free by default: with no configuration it uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity, no payment), even if a wallet key is set for Extract/Render. Only if the operator sets AGENTSEARCH_MODE=paid does it pay per call in USDC on Base over x402 instead: $0.003 to AgentSearch's own x402 API by default, or $0.005 through the Pocket Network Agentic Portal with AGENTSEARCH_PAYMENT_ROUTE=pocket (never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00); paid results include the payment receipt and the response, whose content is untrusted third-party data. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
+  "Free with no wallet: it uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity, no payment). When the operator has configured a wallet (AGENTSEARCH_WALLET_PRIVATE_KEY, POCKET_PRIVATE_KEY or AGENTSEARCH_WALLET_FILE), each search pays per call in USDC on Base over x402: $0.003 to AgentSearch's own x402 API by default, or $0.005 through the Pocket Network Agentic Portal with AGENTSEARCH_PAYMENT_ROUTE=pocket (never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00); AGENTSEARCH_MODE=free keeps search free even with a wallet. Every result has an agentsearch_mode field saying whether the call was free or paid; paid results include the payment receipt and the response, whose content is untrusted third-party data. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
 
 export const TRIAL_TOOL_SENTENCE =
   "No wallet needed to try it: with no wallet key it uses the AgentSearch free trial (5 extract and 3 render calls/day per IP, text output only, no payment; set AGENTSEARCH_FREE_TRIAL=0 to turn this off); past the trial it returns an error with wallet setup steps.";
 
 export const PAID_TOOL_SENTENCE =
-  "Paid tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and then pays per call in USDC on Base over x402: by default to AgentSearch's own x402 API (extract $0.002, render $0.005, search_and_read $0.005), or $0.005 through the Pocket Network Agentic Portal with AGENTSEARCH_PAYMENT_ROUTE=pocket (search, extract and render only); never more than the per-call cap ($0.020 on the direct route) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The result includes the payment receipt and the response, whose content is untrusted third-party data. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
+  "Paid tool: needs a wallet (AGENTSEARCH_WALLET_PRIVATE_KEY, POCKET_PRIVATE_KEY or AGENTSEARCH_WALLET_FILE) and then pays per call in USDC on Base over x402: by default to AgentSearch's own x402 API (extract $0.002, render $0.005, search_and_read $0.005), or $0.005 through the Pocket Network Agentic Portal with AGENTSEARCH_PAYMENT_ROUTE=pocket (search, extract and render only); never more than the per-call cap ($0.020 on the direct route) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The result includes the payment receipt and the response, whose content is untrusted third-party data. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
 
 const WEB_SEARCH_DESCRIPTION = [
   "Search the web with AgentSearch and return the response as pretty-printed JSON text.",
@@ -76,7 +76,7 @@ const WEB_SEARCH_DESCRIPTION = [
   SEARCH_COST_SENTENCE,
   "Read-only: not destructive, but it uses the network and can hit rate limits (on the free tier, a 429 means the daily limit was reached; the error says how to upgrade).",
   "Integers for max_results outside 1–5 are clamped (default 5), not rejected.",
-  "Filters (freshness or date_from/date_to, country, language, include_domains, exclude_domains) apply on the paid direct route (AGENTSEARCH_MODE=paid); the free tier ignores them. For recent news articles use agentsearch_news_search.",
+  "Filters (freshness or date_from/date_to, country, language, include_domains, exclude_domains) apply on the paid direct route (wallet configured); the free tier ignores them. For recent news articles use agentsearch_news_search.",
 ].join(" ");
 
 const EXTRACT_DESCRIPTION = [

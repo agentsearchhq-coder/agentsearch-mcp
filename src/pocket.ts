@@ -13,6 +13,9 @@ import { x402Client, x402HTTPClient } from "@x402/core/client";
 import { decodePaymentResponseHeader } from "@x402/core/http";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { isSecureOrLocalUrl, requestTimeoutMs } from "./client.js";
 
 export const DEFAULT_PORTAL_URL = "https://agent.pocket.network";
@@ -39,13 +42,13 @@ export const PORTAL_SERVICES: Record<PortalOperation, { serviceId: string; path:
 export const KEY_ENV_VARS = ["AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY"] as const;
 
 export const SETUP_MESSAGE = [
-  "This paid call needs a wallet: no wallet key is configured (agentsearch_web_search is free by default and only pays when AGENTSEARCH_MODE=paid or auto; agentsearch_extract and agentsearch_render always pay).",
-  "Option 1 (pay per call, no account): set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config, then restart the client.",
+  "This paid call needs a wallet: no wallet key or wallet file is configured (agentsearch_web_search is free without a wallet; agentsearch_extract and agentsearch_render always pay).",
+  "Option 1 (pay per call, no account): set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, or AGENTSEARCH_WALLET_FILE to an existing wallet file (AGENTSEARCH_WALLET_FILE=agentcash reuses ~/.agentcash/wallet.json), in the env block of this MCP server in your client config, then restart the client.",
   "Fund that wallet with a little USDC on Base (for example $1). No ETH is needed: the x402 facilitator pays gas.",
   "AGENTSEARCH_PAYMENT_ROUTE=pocket is set, so calls are paid through the Pocket Network Agentic Portal (https://agent.pocket.network) over x402 at $0.005 per call (5000 atomic units). Spending is limited to $0.005 per call and to AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default 1000000 = $1.00).",
   "Remove AGENTSEARCH_PAYMENT_ROUTE to use the default route, AgentSearch's own x402 API (search $0.003, extract $0.002, render $0.005).",
   "Option 2 (self-hosted): set AGENTSEARCH_BASE_URL to your own AgentSearch-compatible API.",
-  "A wallet key alone does not make search paid: set AGENTSEARCH_MODE=paid as well if you want to pay for search too.",
+  "With a wallet configured, search pays per call too (set AGENTSEARCH_MODE=free to keep search on the free tier).",
   "The review tools (agentsearch_review_lookup, agentsearch_review_submit) work without either.",
 ].join(" ");
 
@@ -59,23 +62,78 @@ export class PortalError extends Error {
   }
 }
 
+/**
+ * Reuse an existing wallet file instead of pasting a raw key (since 1.9.0).
+ * AGENTSEARCH_WALLET_FILE is a path to a file holding either a 64-hex private key (for example a ClawRouter-style wallet.key)
+ * or JSON with a "privateKey" field (AgentCash's ~/.agentcash/wallet.json). The shortcut value "agentcash" means ~/.agentcash/wallet.json.
+ * Encrypted keystores and remote signers (CDP server wallets) are not supported yet.
+ */
+export const WALLET_FILE_ENV_VAR = "AGENTSEARCH_WALLET_FILE";
+
+export function walletFilePath(): string | undefined {
+  const raw = process.env[WALLET_FILE_ENV_VAR]?.trim();
+  if (!raw) return undefined;
+  if (raw.toLowerCase() === "agentcash") return join(homedir(), ".agentcash", "wallet.json");
+  if (raw === "~" || raw.startsWith("~/")) return join(homedir(), raw.slice(1));
+  return raw;
+}
+
+function keyFromWalletFile(path: string): string {
+  let content: string;
+  try {
+    content = readFileSync(path, "utf8").trim();
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException)?.code ?? "read error";
+    throw new PortalError(`${WALLET_FILE_ENV_VAR} points to a file that could not be read (${code}): ${path}. Nothing was signed.`);
+  }
+  if (content.startsWith("{")) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new PortalError(`${WALLET_FILE_ENV_VAR} (${path}) is not valid JSON. The contents are not shown. Nothing was signed.`);
+    }
+    const pk = (parsed as Record<string, unknown> | null)?.privateKey ?? (parsed as Record<string, unknown> | null)?.private_key;
+    if (typeof pk !== "string") {
+      throw new PortalError(
+        `${WALLET_FILE_ENV_VAR} (${path}) has no "privateKey" field (encrypted keystores are not supported). The contents are not shown. Nothing was signed.`
+      );
+    }
+    return pk.trim();
+  }
+  return content;
+}
+
+/** True when a wallet is configured: a key env var or AGENTSEARCH_WALLET_FILE (the file is only read when signing). */
+export function walletSource(): string | undefined {
+  for (const name of KEY_ENV_VARS) if (process.env[name]?.trim()) return name;
+  if (walletFilePath()) return WALLET_FILE_ENV_VAR;
+  return undefined;
+}
+
 /** Reads the wallet key without ever echoing it. Returns undefined if unset. */
 export function readWalletKey(): `0x${string}` | undefined {
   for (const name of KEY_ENV_VARS) {
     const raw = process.env[name]?.trim();
     if (!raw) continue;
-    if (!/^(0x)?[0-9a-fA-F]{64}$/.test(raw)) {
-      throw new PortalError(
-        `${name} is set but is not a private key (expected 64 hex characters, optional 0x prefix). The value is not shown. Nothing was signed.`
-      );
-    }
-    return (raw.startsWith("0x") ? raw : `0x${raw}`) as `0x${string}`;
+    return normalizeKey(raw, name);
   }
+  const path = walletFilePath();
+  if (path) return normalizeKey(keyFromWalletFile(path), `${WALLET_FILE_ENV_VAR} (${path})`);
   return undefined;
 }
 
+function normalizeKey(raw: string, name: string): `0x${string}` {
+  if (!/^(0x)?[0-9a-fA-F]{64}$/.test(raw)) {
+    throw new PortalError(
+      `${name} is set but is not a private key (expected 64 hex characters, optional 0x prefix). The value is not shown. Nothing was signed.`
+    );
+  }
+  return (raw.startsWith("0x") ? raw : `0x${raw}`) as `0x${string}`;
+}
+
 export function hasWalletKey(): boolean {
-  return KEY_ENV_VARS.some((n) => Boolean(process.env[n]?.trim()));
+  return walletSource() !== undefined;
 }
 
 function atomicEnv(names: string[], fallback: bigint): { value: bigint; source?: string } {

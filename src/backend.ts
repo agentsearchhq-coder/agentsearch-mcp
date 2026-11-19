@@ -13,14 +13,14 @@ export const SEARCH_MODES = ["free", "paid", "auto"] as const;
 export type SearchMode = (typeof SEARCH_MODES)[number];
 
 /**
- * Search mode from AGENTSEARCH_MODE. Default "free": search uses the free relay even when a wallet key is set,
- * so a key exported for Extract/Render (or inherited from the parent shell) never silently makes search paid.
- * "paid": search pays per call over x402 (direct $0.003 by default, or $0.005 via Pocket; needs a wallet key). "auto": legacy 1.3.0-1.3.4 behavior
- * (paid search when a wallet key is set, else free). Returns "invalid" for an unrecognized value.
+ * Search mode from AGENTSEARCH_MODE. Default (unset or blank) is "auto" since 1.9.0: search pays per call over x402
+ * when a wallet is configured (AGENTSEARCH_WALLET_PRIVATE_KEY, POCKET_PRIVATE_KEY or AGENTSEARCH_WALLET_FILE) and uses the
+ * free relay when none is. "free": always the free relay, even with a wallet (the opt-out). "paid": always pay (needs a wallet).
+ * Returns "invalid" for an unrecognized value. (1.3.5-1.8.x defaulted to "free".)
  */
 export function searchMode(): SearchMode | "invalid" {
   const v = (process.env[MODE_ENV_VAR] ?? "").trim().toLowerCase();
-  if (!v) return "free";
+  if (!v) return "auto";
   return (SEARCH_MODES as readonly string[]).includes(v) ? (v as SearchMode) : "invalid";
 }
 
@@ -28,7 +28,7 @@ export function invalidModeMessage(): string {
   return `${MODE_ENV_VAR} must be one of 'free', 'paid' or 'auto' (got ${JSON.stringify((process.env[MODE_ENV_VAR] ?? "").trim())}). No call was made.`;
 }
 
-/** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. */
+/** Which backend serves an operation. Search: paid when a wallet is configured (auto, the default) or AGENTSEARCH_MODE=paid; free relay with no wallet or AGENTSEARCH_MODE=free. Extract/render: portal when a wallet key is set, else the relay's free trial. */
 const DIRECT_ONLY_TOOL: Record<string, string> = { search_and_read: "agentsearch_search_and_read", news: "agentsearch_news_search", screenshot: "agentsearch_screenshot" };
 
 export function directOnlyPocketMessage(op: DirectOperation): string {
@@ -64,6 +64,24 @@ function paidBackend(op: PortalOperation): BackendMode {
     return "free-relay";
   }
   return hasWalletKey() ? "pocket" : "free-relay";
+}
+
+/** Short, human-readable label for the active search mode; shown in the startup log and on every search result. */
+export function searchModeLabel(): string {
+  const mode = backendMode("search");
+  const m = searchMode();
+  if (mode === "self-hosted") return "self-hosted (AGENTSEARCH_BASE_URL, no payment)";
+  if (m === "invalid") return "invalid AGENTSEARCH_MODE (use auto, free or paid)";
+  if (mode === "direct") return `paid: x402 to AgentSearch's API, ${DIRECT_PRICES_USD.search} per search (wallet configured${m === "paid" ? ", AGENTSEARCH_MODE=paid" : ""}; AGENTSEARCH_MODE=free keeps search free)`;
+  if (mode === "pocket") return "paid: x402 via the Pocket portal, $0.005 per search (AGENTSEARCH_PAYMENT_ROUTE=pocket; AGENTSEARCH_MODE=free keeps search free)";
+  if (hasWalletKey()) return "free: AgentSearch free tier, up to 25 searches/day per IP (AGENTSEARCH_MODE=free; a wallet is configured but search does not pay)";
+  return "free: AgentSearch free tier, up to 25 searches/day per IP (no wallet configured)";
+}
+
+/** Adds the active mode to a search result so the agent and the user can see whether the call was free or paid. */
+function withMode(data: unknown): unknown {
+  if (data && typeof data === "object" && !Array.isArray(data)) return { agentsearch_mode: searchModeLabel(), ...(data as Record<string, unknown>) };
+  return data;
 }
 
 type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
@@ -120,7 +138,7 @@ export async function runOperation(
       return ok(data);
     }
     if (mode === "free-relay") {
-      if (op === "search") return ok(await relaySearch(body as SearchRequest));
+      if (op === "search") return ok(withMode(await relaySearch(body as SearchRequest)));
       const tool = op === "extract" ? "agentsearch_extract" : "agentsearch_render";
       if (!freeTrialEnabled()) return fail(paidOnlyMessage(tool));
       try {
@@ -135,10 +153,10 @@ export async function runOperation(
     if (paidRoute() === "invalid") return fail(invalidRouteMessage());
     if (mode === "direct") {
       const result = await callDirect(op, clean);
-      return ok({ ...result, note: DIRECT_RESPONSE_NOTE });
+      return ok(op === "search" ? withMode({ ...result, note: DIRECT_RESPONSE_NOTE }) : { ...result, note: DIRECT_RESPONSE_NOTE });
     }
     const result = await callPortal(op as PortalOperation, clean);
-    return ok({ ...result, note: RESPONSE_NOTE });
+    return ok(op === "search" ? withMode({ ...result, note: RESPONSE_NOTE }) : { ...result, note: RESPONSE_NOTE });
   } catch (err) {
     if (err instanceof PortalError) {
       return fail(Object.keys(err.detail).length ? { message: err.message, ...err.detail } : err.message);

@@ -1,6 +1,6 @@
 {
   "name": "agentsearch",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Free web search for Cursor agents (no API key, 25/day per IP), plus a no-wallet free trial of URL-to-markdown extract and headless JS render. Optional pay-per-call over x402 (USDC on Base) only if you add your own wallet key.",
   "author": {
     "name": "AgentSearch",

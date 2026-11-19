@@ -2,9 +2,9 @@
   "manifest_version": "0.3",
   "name": "agentsearch-mcp",
   "display_name": "AgentSearch (agentsearchhq.com)",
-  "version": "1.8.5",
+  "version": "1.9.0",
   "description": "Free web search out of the box (up to 25 searches/day per IP, subject to shared daily capacity) and a no-wallet free trial of page extract (5/day) and JS render (3/day); then pay per call in USDC on Base via x402 to AgentSearch's own API, or self-hosted; plus the free AgentSearch Review Board.",
-  "long_description": "Stdio MCP server from AgentSearch. With no configuration, agentsearch_web_search uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity); with no wallet key, agentsearch_extract and agentsearch_render use the AgentSearch free trial (5 extract and 3 render calls/day per IP, text output only; set AGENTSEARCH_FREE_TRIAL=0 to turn it off), and past it they return wallet setup steps (https://agentsearchhq.com/wallet-setup). With a wallet key, agentsearch_extract, agentsearch_render and agentsearch_search_and_read pay AgentSearch's own x402 API on Base (https://api.agentsearchhq.com): extract $0.002, render $0.005, search_and_read $0.005 in USDC (gasless; no account or API key; failed calls are not charged; search_and_read is charged only when at least one page has text and is direct-only); search stays free unless AGENTSEARCH_MODE=paid ($0.003). The server never signs more than $0.020 per call or more than the session cap (default $1.00), signs only USDC on Base for AgentSearch's pinned payee, and returns the payment receipt with each result. Use a new wallet holding only a little USDC. Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Set AGENTSEARCH_BASE_URL to use your own self-hosted AgentSearch-compatible API with no payment. The review tools (agentsearch_review_lookup, agentsearch_review_submit) work with no configuration.",
+  "long_description": "Stdio MCP server from AgentSearch. With no configuration, agentsearch_web_search uses the AgentSearch free tier (up to 25 searches/day per IP, subject to shared daily capacity); with no wallet key, agentsearch_extract and agentsearch_render use the AgentSearch free trial (5 extract and 3 render calls/day per IP, text output only; set AGENTSEARCH_FREE_TRIAL=0 to turn it off), and past it they return wallet setup steps (https://agentsearchhq.com/wallet-setup). With a wallet key, agentsearch_extract, agentsearch_render and agentsearch_search_and_read pay AgentSearch's own x402 API on Base (https://api.agentsearchhq.com): extract $0.002, render $0.005, search_and_read $0.005 in USDC (gasless; no account or API key; failed calls are not charged; search_and_read is charged only when at least one page has text and is direct-only); with a wallet, agentsearch_web_search pays $0.003 per call too unless AGENTSEARCH_MODE=free. AGENTSEARCH_WALLET_FILE reuses an existing wallet file (for example AgentCash's ~/.agentcash/wallet.json) instead of a pasted key. The server never signs more than $0.020 per call or more than the session cap (default $1.00), signs only USDC on Base for AgentSearch's pinned payee, and returns the payment receipt with each result. Use a new wallet holding only a little USDC. Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Set AGENTSEARCH_BASE_URL to use your own self-hosted AgentSearch-compatible API with no payment. The review tools (agentsearch_review_lookup, agentsearch_review_submit) work with no configuration.",
   "author": {
     "name": "AgentSearch",
     "url": "https://github.com/agentsearchhq-coder"
@@ -53,6 +53,7 @@
         "AGENTSEARCH_API_KEY": "${user_config.AGENTSEARCH_API_KEY}",
         "AGENTSEARCH_REVIEW_KEY": "${user_config.AGENTSEARCH_REVIEW_KEY}",
         "AGENTSEARCH_WALLET_PRIVATE_KEY": "${user_config.AGENTSEARCH_WALLET_PRIVATE_KEY}",
+        "AGENTSEARCH_WALLET_FILE": "${user_config.AGENTSEARCH_WALLET_FILE}",
         "AGENTSEARCH_MAX_TOTAL_ATOMIC": "${user_config.AGENTSEARCH_MAX_TOTAL_ATOMIC}",
         "AGENTSEARCH_MODE": "${user_config.AGENTSEARCH_MODE}",
         "AGENTSEARCH_FREE_TRIAL": "${user_config.AGENTSEARCH_FREE_TRIAL}",
@@ -64,7 +65,7 @@
   "tools": [
     {
       "name": "agentsearch_web_search",
-      "description": "Search the web and return JSON text. Free with no config (free tier, up to 25 searches/day per IP, subject to shared daily capacity). Pays per call over x402 ($0.003 to AgentSearch's API, or $0.005 via Pocket) only if AGENTSEARCH_MODE=paid; a wallet key alone keeps search free. Uses your self-hosted API if AGENTSEARCH_BASE_URL is set. Use extract when you already have a URL. Paid direct calls accept freshness/date, country, language and domain filters. Read-only."
+      "description": "Search the web and return JSON text. Free with no config (free tier, up to 25 searches/day per IP, subject to shared daily capacity). Pays per call over x402 ($0.003 to AgentSearch's API, or $0.005 via Pocket) when a wallet is configured, unless AGENTSEARCH_MODE=free. Uses your self-hosted API if AGENTSEARCH_BASE_URL is set. Use extract when you already have a URL. Paid direct calls accept freshness/date, country, language and domain filters. Read-only."
     },
     {
       "name": "agentsearch_extract",
@@ -99,9 +100,16 @@
     "AGENTSEARCH_WALLET_PRIVATE_KEY": {
       "type": "string",
       "title": "Wallet private key (pay per call)",
-      "description": "Optional. 64-hex private key of a NEW wallet holding a little USDC on Base. Enables paid extract ($0.002) and render ($0.005) per call via x402, paid to AgentSearch's own API; without it they use the small free trial. Search stays free unless you set the search mode to paid. Used only to sign payments.",
+      "description": "Optional. 64-hex private key of a NEW wallet holding a little USDC on Base. Enables paid search ($0.003), extract ($0.002) and render ($0.005) per call via x402, paid to AgentSearch's own API; without it search is free and extract/render use the small free trial. Set the search mode to free to keep search free with a wallet. Used only to sign payments.",
       "sensitive": true,
       "required": false
+    },
+    "AGENTSEARCH_WALLET_FILE": {
+      "type": "string",
+      "title": "Wallet file (instead of a key)",
+      "description": "Optional. Path to an existing wallet file: a 64-hex key, or JSON with a privateKey field (AgentCash). Enter 'agentcash' to reuse ~/.agentcash/wallet.json. Same effect as the private key field.",
+      "required": false,
+      "default": ""
     },
     "AGENTSEARCH_MAX_TOTAL_ATOMIC": {
       "type": "string",
@@ -112,10 +120,10 @@
     },
     "AGENTSEARCH_MODE": {
       "type": "string",
-      "title": "Search mode (free, paid or auto)",
-      "description": "Optional. Search only. Leave blank or 'free' to keep search on the free tier even with a wallet key. 'paid' pays per search ($0.005 direct, $0.005 via Pocket; needs a wallet key); 'auto' pays for search whenever a wallet key is set.",
+      "title": "Search mode (auto, free or paid)",
+      "description": "Optional. Search only. Leave blank or 'auto' (the default): search pays per call ($0.003 direct, $0.005 via Pocket) when a wallet is set and is free when none is. 'free' keeps search on the free tier even with a wallet. 'paid' always pays (needs a wallet).",
       "required": false,
-      "default": "free"
+      "default": ""
     },
     "AGENTSEARCH_FREE_TRIAL": {
       "type": "string",
