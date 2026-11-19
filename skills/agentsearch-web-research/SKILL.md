@@ -9,7 +9,7 @@ The AgentSearch MCP server (bundled with this plugin) gives you these tools:
 
 | Need | Tool | Cost without a wallet key |
 | --- | --- | --- |
-| Find pages for a query | `agentsearch_web_search` | Free (25/day per IP) |
+| Find pages for a query | `agentsearch_web_search` | Free (25 searches per IP in total, then pay per call) |
 | Read one known URL as markdown | `agentsearch_extract` | Free trial (5/day per IP) |
 | Read a JavaScript-heavy page | `agentsearch_render` | Free trial (3/day per IP) |
 | Search and read top results in one call | `agentsearch_search_and_read` | Needs wallet key |

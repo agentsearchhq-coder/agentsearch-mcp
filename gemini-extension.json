@@ -1,7 +1,7 @@
 {
   "name": "agentsearch",
   "version": "1.7.0",
-  "description": "Web search, URL-to-markdown extract, JS render and search_and_read for AI agents. Free keyless search (up to 25/day per IP) by default; optional wallet env for paid calls on AgentSearch's direct x402 API on Base.",
+  "description": "Web search, URL-to-markdown extract, JS render and search_and_read for AI agents. Free keyless search (25 searches per IP in total, then pay per call) by default; optional wallet env for paid calls on AgentSearch's direct x402 API on Base.",
   "mcpServers": {
     "agentsearch": {
       "command": "npx",
