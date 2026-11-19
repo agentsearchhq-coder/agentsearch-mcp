@@ -1,6 +1,6 @@
 # agentsearch-mcp
 
-MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**. It has two groups of tools:
+MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**, or by URL with the free hosted endpoint `https://relay.agentsearchhq.com/mcp` (see [Connect by URL](#connect-by-url-hosted-free-nothing-to-install)). It has two groups of tools:
 
 - **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the AgentSearch free tier (`https://relay.agentsearchhq.com/v1/search`): **25 free searches per IP in total, then pay per call, subject to shared daily capacity**, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
 - **Extract and render free trial, no wallet (new in 1.4.0):** with no wallet key, `agentsearch_extract` (**5 calls/day per IP**) and `agentsearch_render` (**3 calls/day per IP**, text output, no screenshots) use the AgentSearch free trial on the same relay. Past it they return HTTP 429 with [wallet setup](https://agentsearchhq.com/wallet-setup?utm_source=github&utm_medium=readme&utm_campaign=mcp) steps. Set `AGENTSEARCH_FREE_TRIAL=0` to turn the trial off.
@@ -102,6 +102,39 @@ For `agentsearch_render`, target-site failures (DNS/TLS errors, timeouts, bot wa
 - For search/extract/render, either a wallet key with a little USDC on Base (pay per call), or your own AgentSearch-compatible API with `AGENTSEARCH_BASE_URL` set.
 
 ---
+
+## Connect by URL (hosted, free, nothing to install)
+
+No Node, no `npx`, no wallet: point any MCP client that supports **Streamable HTTP** at
+
+```
+https://relay.agentsearchhq.com/mcp
+```
+
+It exposes the free tools only: `agentsearch_web_search` (**up to 25 searches/day per IP**, subject to shared daily capacity), plus the no-wallet trials of `agentsearch_extract` (**5 calls/day per IP**) and `agentsearch_render` (**3 calls/day per IP**, text output). The limits are the same per-IP limits as the free relay (`https://relay.agentsearchhq.com/v1/search`), shared with it, not extra quota. Past a limit the tool returns a 429 message with how to continue. The hosted endpoint has no wallet and makes no paid calls. For paid, higher-volume use (search $0.003, extract $0.002, render $0.005, news, screenshots, search + read) run the stdio package below with a wallet, or call the x402 API at `https://api.agentsearchhq.com` directly.
+
+Examples:
+
+```bash
+# Claude Code
+claude mcp add --transport http agentsearch https://relay.agentsearchhq.com/mcp
+
+# VS Code: .vscode/mcp.json
+#   { "servers": { "agentsearch": { "type": "http", "url": "https://relay.agentsearchhq.com/mcp" } } }
+
+# Cursor: ~/.cursor/mcp.json
+#   { "mcpServers": { "agentsearch": { "url": "https://relay.agentsearchhq.com/mcp" } } }
+```
+
+Quick check with curl:
+
+```bash
+curl -s https://relay.agentsearchhq.com/mcp \
+  -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+The server is stateless (no sessions), so `initialize` is optional. The Review Board tools and the paid tools are only in the stdio package.
 
 ## Install
 

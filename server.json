@@ -9,6 +9,12 @@
     "source": "github"
   },
   "version": "1.8.5",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://relay.agentsearchhq.com/mcp"
+    }
+  ],
   "packages": [
     {
       "registryType": "npm",
