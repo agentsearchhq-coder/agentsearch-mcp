@@ -1,5 +1,5 @@
 /**
- * Free AgentSearch relay: search (up to 25 searches/day per IP, subject to shared daily capacity) plus, since 1.4.0,
+ * Free AgentSearch relay: search (25 searches per IP in total, then pay per call, subject to shared daily capacity) plus, since 1.4.0,
  * a small no-wallet free trial of Extract (5/day per IP) and Render (3/day per IP, text output only). No key or wallet.
  */
 import { AgentSearchHttpError, requestTimeoutMs, type ExtractRequest, type RenderRequest, type SearchRequest } from "./client.js";
@@ -25,7 +25,7 @@ const ADD_WALLET =
   "To add a wallet: set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, in the env block of this MCP server in your client config, fund it with a little USDC on Base (for example $1; no ETH needed), and restart the client. A wallet key alone enables Extract and Render; search stays on the free tier unless you also set AGENTSEARCH_MODE=paid.";
 
 export const FREE_RELAY_LIMIT_MESSAGE = [
-  `Free search limit reached: the AgentSearch free tier allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
+  `Free search allowance used up: the AgentSearch free tier is ${FREE_RELAY_DAILY_LIMIT} searches per IP in total (not per day), so it does not reset.`,
   "Upgrade to paid search (plus agentsearch_extract and agentsearch_render), paid per call in USDC on Base over x402.",
   PAID_ROUTE_SENTENCE,
   ADD_WALLET,
@@ -37,8 +37,8 @@ export function paidOnlyMessage(tool: "agentsearch_extract" | "agentsearch_rende
     `${tool} is a paid tool (USDC on Base over x402). No wallet is configured, so no call was made.`,
     PAID_ROUTE_SENTENCE,
     freeTrialEnabled()
-      ? `The free tier covers agentsearch_web_search (up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity); the no-wallet ${tool === "agentsearch_extract" ? "extract" : "render"} free trial is not available from this relay right now.`
-      : `The free tier covers agentsearch_web_search (up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity). The no-wallet extract/render free trial is turned off (${FREE_TRIAL_ENV_VAR}=0).`,
+      ? `The free tier covers agentsearch_web_search (${FREE_RELAY_DAILY_LIMIT} searches per IP in total, then pay per call; subject to shared daily capacity); the no-wallet ${tool === "agentsearch_extract" ? "extract" : "render"} free trial is not available from this relay right now.`
+      : `The free tier covers agentsearch_web_search (${FREE_RELAY_DAILY_LIMIT} searches per IP in total, then pay per call; subject to shared daily capacity). The no-wallet extract/render free trial is turned off (${FREE_TRIAL_ENV_VAR}=0).`,
     ADD_WALLET,
     "Spending is capped per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
     "The review tools (agentsearch_review_lookup, agentsearch_review_submit) are free and need no setup.",
@@ -47,7 +47,7 @@ export function paidOnlyMessage(tool: "agentsearch_extract" | "agentsearch_rende
 
 /** Limit message when a wallet is already configured: only the search mode needs to change. */
 export const FREE_RELAY_LIMIT_MESSAGE_WITH_WALLET = [
-  `Free search limit reached: the AgentSearch free tier allows up to ${FREE_RELAY_DAILY_LIMIT} searches/day per IP, subject to shared daily capacity. It resets daily.`,
+  `Free search allowance used up: the AgentSearch free tier is ${FREE_RELAY_DAILY_LIMIT} searches per IP in total (not per day), so it does not reset.`,
   "A wallet key is configured, but search is in free mode (the default). To pay per search call instead ($0.003 on the default direct route, $0.005 with AGENTSEARCH_PAYMENT_ROUTE=pocket; capped per call and by AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00), set AGENTSEARCH_MODE=paid in the env block of this MCP server and restart the client.",
 ].join(" ");
 

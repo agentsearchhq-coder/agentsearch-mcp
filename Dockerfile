@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # AgentSearch MCP server (stdio). Default: no env, keyless free search
-# (up to 25/day per IP) plus the extract/render trial. Optional runtime
+# (25 searches per IP in total, then pay per call) plus the extract/render trial. Optional runtime
 # env (AGENTSEARCH_WALLET_PRIVATE_KEY, etc.) enables paid calls to
 # https://api.agentsearchhq.com. Never bake secrets into the image.
 
