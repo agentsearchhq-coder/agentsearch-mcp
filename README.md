@@ -13,6 +13,20 @@ MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com
 npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immediately
 ```
 
+> **Free: 25 searches/day per IP. Add a wallet key to never get blocked.** Add `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new, dedicated wallet) to the `env` of this MCP server and, on 1.8.x, `AGENTSEARCH_MODE=paid` so search pays too. Fund about $1 of USDC on Base (no ETH, no account, no API key): [wallet setup, about 2 minutes](https://agentsearchhq.com/wallet-setup?utm_source=agentsearch-mcp&utm_medium=readme). Paid prices per call, USDC on Base over x402: search $0.003, news $0.003, extract $0.002, search_and_read $0.005, render $0.005, screenshot $0.004; failed calls are not charged.
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "agentsearch": {
+>       "command": "npx",
+>       "args": ["-y", "@agentsearchhq/agentsearch-mcp"],
+>       "env": { "AGENTSEARCH_WALLET_PRIVATE_KEY": "0xYOUR_NEW_WALLET_KEY", "AGENTSEARCH_MODE": "paid" }
+>     }
+>   }
+> }
+> ```
+
 **Search, then read the page.** For hits and their text in one payment, use `agentsearch_search_and_read` ($0.005). Or the two-step loop: free `agentsearch_web_search` → `agentsearch_extract` on the 1–2 best URLs (clean markdown, $0.002 each; $1 covers about 500 calls) → `agentsearch_render` only for pages extract couldn't read (JavaScript apps). Guides: [Claude Code research workflow](https://agentsearchhq.com/blog/claude-code-web-research-workflow-mcp?utm_source=github&utm_medium=readme&utm_campaign=mcp), [n8n AI agent reading pages](https://agentsearchhq.com/blog/n8n-ai-agent-read-web-pages?utm_source=github&utm_medium=readme&utm_campaign=mcp), [LangChain (Python) search-then-read](https://agentsearchhq.com/blog/langchain-agent-search-then-read-page?utm_source=github&utm_medium=readme&utm_campaign=mcp).
 
 ### Modes
