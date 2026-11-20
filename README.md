@@ -164,6 +164,8 @@ See `.env.example`. Never commit a real `.env`.
 
 **Cursor plugin:** this repo is also a Cursor plugin (`.cursor-plugin/plugin.json` + `mcp.json` + a web-research skill). It installs the server with free search and the no-wallet trial; add a wallet key only if you want paid tools. To try it locally, clone the repo into `~/.cursor/plugins/local/agentsearch` and restart Cursor.
 
+**Agent Skills (Claude Code, Codex, Cursor, OpenClaw and other skills-compatible agents):** `skills/` holds two skills: `agentsearch-web-research` (uses this MCP server) and `agentsearch-web-search` (no MCP needed; plain HTTPS calls to the free relay, then x402 pay-per-call). Install with `npx skills add agentsearchhq-coder/agentsearch-mcp`, or from ClawHub: `clawhub install agentsearch-web-search`.
+
 **Project** (`.cursor/mcp.json`) or **user** (`~/.cursor/mcp.json` / Cursor Settings → MCP):
 
 ```json
