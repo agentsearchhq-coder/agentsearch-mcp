@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.5 (2026-11-20)
+- Free search wording: the free relay now allows **25 free searches per IP in total** (a lifetime allowance since 2026-11-19, not per day), then pay per call via x402 on Base (search $0.003 at https://api.agentsearchhq.com; wallet setup https://agentsearchhq.com/wallet-setup). Tool descriptions, the free-limit (HTTP 429) messages, startup log, README, llms-install, manifest, GEMINI.md, skill and Dockerfile no longer say "25 searches/day per IP", "resets daily" or "daily limit". The extract/render free trial is unchanged (5 extract and 3 render calls per day per IP). manifest.json: AGENTSEARCH_MODE=paid direct search price $0.003 (was $0.005). No behavior change.
+
 ## 1.8.4 (2026-11-16)
 - Docs only: README intro: paid search $0.003 per call (was $0.005); manifest.json long description, search and news tool descriptions now say $0.003 for direct paid search/news; llms-install says the direct per-call ceiling is $0.020 ($0.005 on Pocket); .env.example paid search $0.003. Live direct prices: search and news $0.003, extract $0.002, render $0.005, screenshot $0.004, search_and_read $0.005; Pocket route unchanged at $0.005. No code or behavior change.
 

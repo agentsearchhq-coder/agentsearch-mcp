@@ -9,7 +9,7 @@ The AgentSearch MCP server (bundled with this plugin) gives you these tools:
 
 | Need | Tool | Cost without a wallet key |
 | --- | --- | --- |
-| Find pages for a query | `agentsearch_web_search` | Free (25/day per IP) |
+| Find pages for a query | `agentsearch_web_search` | Free (25 free searches per IP in total, then pay per call) |
 | Read one known URL as markdown | `agentsearch_extract` | Free trial (5/day per IP) |
 | Read a JavaScript-heavy page | `agentsearch_render` | Free trial (3/day per IP) |
 | Search and read top results in one call | `agentsearch_search_and_read` | Needs wallet key |
@@ -22,7 +22,7 @@ The AgentSearch MCP server (bundled with this plugin) gives you these tools:
 1. Start with `agentsearch_web_search` using a specific query (2+ characters; include library names and versions).
 2. Pick the 1-3 most relevant results and read them with `agentsearch_extract`. Use `agentsearch_render` only when extract returns empty or obviously incomplete content (client-rendered pages).
 3. Cite the URLs you used in your answer.
-4. Do not retry a call that failed with an input error; fix the input instead. On a daily free-limit error, tell the user and continue with what you have.
+4. Do not retry a call that failed with an input error; fix the input instead. On a free-limit error (the 25 free searches per IP are a lifetime allowance; the extract/render trials are daily), tell the user and continue with what you have.
 
 ## Paid calls (optional)
 

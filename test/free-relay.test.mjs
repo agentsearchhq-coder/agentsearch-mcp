@@ -82,7 +82,7 @@ test("free relay 429 returns the limit message with upgrade instructions", async
   const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.equal(r.content[0].text, FREE_RELAY_LIMIT_MESSAGE);
-  assert.match(r.content[0].text, /up to 25 searches\/day per IP, subject to shared daily capacity/);
+  assert.match(r.content[0].text, /25 free searches per IP in total, then pay per call, subject to shared daily capacity/);
   assert.match(r.content[0].text, /Upgrade to paid/);
   assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
   assert.match(r.content[0].text, /\$0\.005/);
@@ -112,7 +112,7 @@ test("wallet key set, default mode: free relay 429 tells the user to set AGENTSE
   const r = await (await connect()).callTool({ name: "agentsearch_web_search", arguments: { query: "qq" } });
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /AGENTSEARCH_MODE=paid/);
-  assert.match(r.content[0].text, /up to 25 searches\/day per IP, subject to shared daily capacity/);
+  assert.match(r.content[0].text, /25 free searches per IP in total, then pay per call, subject to shared daily capacity/);
   assert.doesNotMatch(r.content[0].text, /Upgrade to paid search/);
 });
 
@@ -171,7 +171,7 @@ test("tool metadata: free-first search description, no relay hostname, annotatio
   const search = tools.find((x) => x.name === "agentsearch_web_search");
   assert.match(search.description, /^Search the web[^]*Free by default/);
   assert.doesNotMatch(search.description, /Default mode: calls the Pocket Network Agentic Portal and PAYS/);
-  assert.match(search.description, /up to 25 searches\/day per IP, subject to shared daily capacity/);
+  assert.match(search.description, /25 free searches per IP in total, then pay per call, subject to shared daily capacity/);
   assert.match(tools.find((x) => x.name === "agentsearch_extract").description, /Paid tool/);
 });
 
@@ -184,7 +184,7 @@ test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, c
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
   assert.equal(calls[0].body.url, "https://example.com/");
   assert.equal(calls[0].init.headers.authorization, undefined);
-  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1.8.4$/);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1.8.5$/);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.title, "Example Domain");
   assert.equal(data.free_trial.remaining_today, 4);
