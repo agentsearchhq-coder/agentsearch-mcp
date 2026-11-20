@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.6 (2026-11-20)
+- Docs/metadata only: README "Connect by URL" section for the free hosted MCP at https://relay.agentsearchhq.com/mcp with one-click install links for Cursor and VS Code, and setup steps for Claude.ai/Claude Desktop custom connectors, ChatGPT custom MCP servers and Claude Code (from the official docs); server.json lists the hosted endpoint under `remotes` (streamable-http). README says "free allowance used up" instead of "daily limit". No code or behavior change.
+
 ## 1.8.5 (2026-11-20)
 - Free search wording: the free relay now allows **25 free searches per IP in total** (a lifetime allowance since 2026-11-19, not per day), then pay per call via x402 on Base (search $0.003 at https://api.agentsearchhq.com; wallet setup https://agentsearchhq.com/wallet-setup). Tool descriptions, the free-limit (HTTP 429) messages, startup log, README, llms-install, manifest, GEMINI.md, skill and Dockerfile no longer say "25 searches/day per IP", "resets daily" or "daily limit". The extract/render free trial is unchanged (5 extract and 3 render calls per day per IP). manifest.json: AGENTSEARCH_MODE=paid direct search price $0.003 (was $0.005). No behavior change.
 

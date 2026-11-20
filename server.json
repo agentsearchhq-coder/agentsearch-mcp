@@ -8,7 +8,7 @@
     "url": "https://github.com/agentsearchhq-coder/agentsearch-mcp",
     "source": "github"
   },
-  "version": "1.8.5",
+  "version": "1.8.6",
   "remotes": [
     {
       "type": "streamable-http",
@@ -19,7 +19,7 @@
     {
       "registryType": "npm",
       "identifier": "@agentsearchhq/agentsearch-mcp",
-      "version": "1.8.5",
+      "version": "1.8.6",
       "transport": {
         "type": "stdio"
       },
