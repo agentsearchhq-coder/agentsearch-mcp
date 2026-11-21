@@ -1,7 +1,7 @@
 ---
 name: agentsearch-web-search
-description: Live web search, URL-to-markdown extract and JavaScript page render for agents via AgentSearch. Free tier with no API key or account (25 free searches per IP in total, small daily extract/render trials), then pay per call over x402 with USDC on Base (search $0.003). Use when a task needs current web results or the readable text of a URL.
-version: 1.0.1
+description: Live web search, news, search-and-read, screenshots, URL-to-markdown extract and JavaScript page render for agents via AgentSearch. Free tier with no API key or account (25 free searches per IP in total, 10 free news / search-and-read / screenshot calls per IP each, small daily extract/render trials), then pay per call over x402 with USDC on Base. Use when a task needs current web results, recent news, a page screenshot, or the readable text of a URL.
+version: 1.0.2
 homepage: https://agentsearchhq.com
 ---
 
@@ -25,7 +25,7 @@ Search (25 free searches per IP in total, then pay per call):
 
 ```bash
 curl -s -X POST https://relay.agentsearchhq.com/v1/search \
-  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-skill/1.0.1' \
+  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-clawhub-skill/1.0.2' \
   -d '{"query":"openclaw web_search provider plugin","max_results":5}'
 ```
 
@@ -35,13 +35,37 @@ Read one URL as markdown (free trial, 5 per IP per day):
 
 ```bash
 curl -s -X POST https://relay.agentsearchhq.com/v1/extract \
-  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-skill/1.0.1' \
+  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-clawhub-skill/1.0.2' \
   -d '{"url":"https://example.com"}'
 ```
 
 Render a JavaScript-heavy page (free trial, 3 per IP per day): same body, path `/v1/render`. Use render only when extract returns empty or clearly incomplete text.
 
-The free relay also has a shared daily quota. When a free limit is reached it answers HTTP 429 with a JSON `error` that names the paid endpoints; once an IP's 25 lifetime free searches are used, search answers HTTP 402 with standard x402 payment requirements instead. Tell the user, and either continue with what you have or, only if the user has approved paid calls, use the paid endpoints below.
+News (10 free news searches per IP in total, then pay per call):
+
+```bash
+curl -s -X POST https://relay.agentsearchhq.com/v1/news \
+  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-clawhub-skill/1.0.2' \
+  -d '{"query":"Federal Reserve interest rate","max_results":5}'
+```
+
+Search and read the top pages as markdown (10 free calls per IP in total, then pay per call):
+
+```bash
+curl -s -X POST https://relay.agentsearchhq.com/v1/search_and_read \
+  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-clawhub-skill/1.0.2' \
+  -d '{"query":"openclaw web_search provider plugin","num_results":1,"max_chars":8000}'
+```
+
+Screenshot of a public page (10 free calls per IP in total, then pay per call):
+
+```bash
+curl -s -X POST https://relay.agentsearchhq.com/v1/screenshot \
+  -H 'content-type: application/json' -H 'x-agent-client: agentsearch-clawhub-skill/1.0.2' \
+  -d '{"url":"https://example.com"}'
+```
+
+The free relay also has a shared daily quota. When a free limit is reached it answers HTTP 429 with a JSON `error` that names the paid endpoints. Tell the user, and either continue with what you have or, only if the user has approved paid calls, use the paid endpoints below.
 
 ## Paid calls (x402, USDC on Base)
 
@@ -72,4 +96,4 @@ Discovery document: https://api.agentsearchhq.com/.well-known/x402 . Docs: https
 
 - OpenClaw web_search provider plugin: `openclaw plugins install npm:@agentsearchhq/openclaw-web-search@0.1.1`, then `openclaw config set tools.web.search.provider agentsearch`.
 - Hosted MCP server (Streamable HTTP, free tier): `https://relay.agentsearchhq.com/mcp`
-- MCP package (optional, local; pinned version, installs only when the user runs it): `npx @agentsearchhq/agentsearch-mcp@1.8.5`. Source: https://github.com/agentsearchhq-coder/agentsearch-mcp
+- MCP package (optional, local; pinned version, installs only when the user runs it): `npx @agentsearchhq/agentsearch-mcp@1.8.7`. Source: https://github.com/agentsearchhq-coder/agentsearch-mcp

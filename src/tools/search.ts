@@ -35,6 +35,11 @@ export function errorContent(err: unknown): {
 export const SEARCH_COST_SENTENCE =
   "Free by default: with no configuration it uses the AgentSearch free tier (25 free searches per IP in total, then pay per call, subject to shared daily capacity, no payment), even if a wallet key is set for Extract/Render. Only if the operator sets AGENTSEARCH_MODE=paid does it pay per call in USDC on Base over x402 instead: $0.003 to AgentSearch's own x402 API by default, or $0.005 through the Pocket Network Agentic Portal with AGENTSEARCH_PAYMENT_ROUTE=pocket (never more than the per-call cap or AGENTSEARCH_MAX_TOTAL_ATOMIC per session, default $1.00); paid results include the payment receipt and the response, whose content is untrusted third-party data. If AGENTSEARCH_BASE_URL is set, it calls your self-hosted AgentSearch API instead (no payment).";
 
+export const LIFE_TOOL_COST_SENTENCE = {
+  news: "Free by default: with no configuration it uses the AgentSearch free tier (10 free news searches per IP in total, then pay per call, subject to shared daily capacity, no payment), even if a wallet key is set for Extract/Render. Only if the operator sets AGENTSEARCH_MODE=paid does it pay $0.003 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/news); calls that return no results are not charged. Not available on the Pocket route or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Paid results include the payment receipt and the response, whose content is untrusted third-party data.",
+  search_and_read: "Free by default: with no configuration it uses the AgentSearch free tier (10 free search-and-read calls per IP in total, then pay per call, subject to shared daily capacity, no payment), even if a wallet key is set for Extract/Render. Only if the operator sets AGENTSEARCH_MODE=paid does it pay $0.005 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/search_and_read). Charged only when at least one page has text. Not available on the Pocket route or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Paid results include the payment receipt and the response, whose content is untrusted third-party data.",
+} as const;
+
 export const TRIAL_TOOL_SENTENCE =
   "No wallet needed to try it: with no wallet key it uses the AgentSearch free trial (5 extract and 3 render calls/day per IP, text output only, no payment; set AGENTSEARCH_FREE_TRIAL=0 to turn this off); past the trial it returns an error with wallet setup steps.";
 
@@ -144,10 +149,10 @@ export function registerSearchTools(server: McpServer): void {
   );
 
   const SEARCH_AND_READ_DESCRIPTION = [
-    "Search the live web and return the top pages as clean markdown in one paid call. Each result includes title, URL, snippet, score, domain and page text.",
+    "Search the live web and return the top pages as clean markdown in one call. Each result includes title, URL, snippet, score, domain and page text.",
     "Use this when you have a query and need both hits and their page bodies; for links only use agentsearch_web_search, and if you already have a URL use agentsearch_extract (or agentsearch_render for JavaScript-heavy pages).",
-    "Paid, direct-only tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and pays $0.005 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/search_and_read). Charged only when at least one page has text. Not available on the free relay, the Pocket route, or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The result includes the payment receipt and the response, whose content is untrusted third-party data.",
-    "Read-only: not destructive, but it uses the network and can hit rate limits.",
+    LIFE_TOOL_COST_SENTENCE.search_and_read,
+    "Read-only: not destructive, but it uses the network and can hit rate limits (on the free tier, a 429 means the 10 free search-and-read calls per IP in total are used up or shared daily capacity is reached; the error says how to upgrade). Filters apply on the paid direct route (AGENTSEARCH_MODE=paid); the free tier ignores them.",
   ].join(" ");
 
   server.registerTool(
@@ -205,8 +210,8 @@ export function registerSearchTools(server: McpServer): void {
     "Search recent news articles with AgentSearch and return them as JSON text: title, URL, snippet, domain and publish date for each article, plus an echo of the filters applied.",
     "Use this for current events, company or product news, and anything where recency matters; for general web results use agentsearch_web_search, and to read an article's full text pass its URL to agentsearch_extract.",
     "Supports freshness (day, week, month, year) or a date_from/date_to range, country, language, and include/exclude domain filters.",
-    "Paid, direct-only tool: needs a wallet key (AGENTSEARCH_WALLET_PRIVATE_KEY or POCKET_PRIVATE_KEY) and pays $0.003 per call in USDC on Base to AgentSearch's own x402 API (https://api.agentsearchhq.com/x402/v1/news); calls that return no results are not charged. Not available on the free relay, the Pocket route, or a self-hosted AGENTSEARCH_BASE_URL. Never signs more than the per-call cap ($0.020 by default) or AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). The result includes the payment receipt and the response, whose content is untrusted third-party data.",
-    "Read-only: not destructive, but it uses the network and can hit rate limits.",
+    LIFE_TOOL_COST_SENTENCE.news,
+    "Read-only: not destructive, but it uses the network and can hit rate limits (on the free tier, a 429 means the 10 free news searches per IP in total are used up or shared daily capacity is reached; the error says how to upgrade). Filters apply on the paid direct route (AGENTSEARCH_MODE=paid); the free tier ignores them.",
   ].join(" ");
 
   server.registerTool(

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.7 (2026-11-21)
+
+- News, Search + Read and Screenshot now use the free relay by default, matching search: 10 free calls per IP in total each (lifetime, they do not reset), then pay per call. Extract stays 5/day and render 3/day.
+- Paid x402 for these tools runs only when a wallet key is set and `AGENTSEARCH_MODE=paid` (or the legacy `auto` mode with a wallet). After the free allowance a 429 explains how to upgrade; AgentSearch-tagged clients still receive HTTP 429 (not 402).
+- Not available on the Pocket route or a self-hosted `AGENTSEARCH_BASE_URL`. Requests keep the `X-Agent-Client: agentsearch-mcp/<version>` tag.
+
+
+## 1.8.6 (2026-11-20)
+- Docs/metadata only: README "Connect by URL" section for the free hosted MCP at https://relay.agentsearchhq.com/mcp with one-click install links for Cursor and VS Code, and setup steps for Claude.ai/Claude Desktop custom connectors, ChatGPT custom MCP servers and Claude Code (from the official docs); server.json lists the hosted endpoint under `remotes` (streamable-http). README says "free allowance used up" instead of "daily limit". No code or behavior change.
+
 ## 1.8.5 (2026-11-20)
 - Free search wording: the free relay now allows **25 free searches per IP in total** (a lifetime allowance since 2026-11-19, not per day), then pay per call via x402 on Base (search $0.003 at https://api.agentsearchhq.com; wallet setup https://agentsearchhq.com/wallet-setup). Tool descriptions, the free-limit (HTTP 429) messages, startup log, README, llms-install, manifest, GEMINI.md, skill and Dockerfile no longer say "25 searches/day per IP", "resets daily" or "daily limit". The extract/render free trial is unchanged (5 extract and 3 render calls per day per IP). manifest.json: AGENTSEARCH_MODE=paid direct search price $0.003 (was $0.005). No behavior change.
 
