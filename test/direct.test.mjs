@@ -51,10 +51,15 @@ test("1.7.0 default: with a wallet key the paid rail is AgentSearch's direct x40
   assert.equal(backendMode("extract"), "direct");
   assert.equal(backendMode("render"), "direct");
   assert.equal(backendMode("search"), "free-relay"); // search stays free by default
-  assert.equal(backendMode("search_and_read"), "direct");
+  assert.equal(backendMode("search_and_read"), "free-relay"); // 1.8.7: news/SAR/screenshot match search
+  assert.equal(backendMode("news"), "free-relay");
+  assert.equal(backendMode("screenshot"), "free-relay");
   process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
   assert.equal(backendMode("extract"), "pocket");
-  assert.equal(backendMode("search_and_read"), "pocket"); // refused later as direct-only
+  assert.equal(backendMode("search_and_read"), "free-relay"); // still free by default even if the paid route is pocket
+  process.env.AGENTSEARCH_MODE = "paid";
+  assert.equal(backendMode("search_and_read"), "pocket"); // refused later as not on Pocket
+  delete process.env.AGENTSEARCH_MODE;
   delete process.env.AGENTSEARCH_PAYMENT_ROUTE;
   process.env.AGENTSEARCH_X402_DIRECT = "0"; // 1.5.0 switch still selects Pocket
   assert.equal(backendMode("extract"), "pocket");
@@ -174,21 +179,28 @@ test("direct URL must be https or localhost", async () => {
   assert.equal(res.isError, true); assert.match(res.content[0].text, /must be https/);
 });
 
-test("search_and_read is paid-only and direct-only: no key, pocket route, and self-hosted all refuse without signing", async () => {
-  globalThis.fetch = async () => assert.fail("no network call expected");
+test("search_and_read: paid pocket route and self-hosted refuse; no key uses the free relay", async () => {
+  // no key, default mode: free relay is used
+  const relayCalls = [];
+  globalThis.fetch = async (url, init) => {
+    relayCalls.push(String(url));
+    return new Response(JSON.stringify({ query: "qq", results: [] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
   let res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
-  assert.equal(res.isError, true); assert.match(res.content[0].text, /wallet key/i);
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
+  assert.equal(res.isError, undefined, res.content[0].text);
+  assert.ok(relayCalls.some((u) => u.includes("/v1/search_and_read")));
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket"; process.env.AGENTSEARCH_MODE = "paid";
+  globalThis.fetch = async () => assert.fail("no network call expected");
   res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /direct x402 API/); assert.match(res.content[0].text, /not on Pocket/i);
-  delete process.env.AGENTSEARCH_PAYMENT_ROUTE;
+  delete process.env.AGENTSEARCH_PAYMENT_ROUTE; delete process.env.AGENTSEARCH_MODE;
   process.env.AGENTSEARCH_BASE_URL = "https://self.example";
   res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
 });
 
 test("search_and_read with a $0.004 per-call cap refuses and tells the user to raise it to 20000", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "4000";
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid"; process.env.AGENTSEARCH_MAX_PER_CALL_ATOMIC = "4000";
   mockApi({ op: "search_and_read", paid: () => assert.fail("must not pay") });
   const res = await call(await connect(), "agentsearch_search_and_read", { query: "qq" });
   assert.equal(res.isError, true);
@@ -196,12 +208,14 @@ test("search_and_read with a $0.004 per-call cap refuses and tells the user to r
   assert.equal(calls.filter((c) => c.sig).length, 0);
 });
 
-test("no wallet key: search_and_read is not on the free relay", () => {
+test("no wallet key: search_and_read, news and screenshot use the free relay", () => {
   assert.equal(backendMode("search_and_read"), "free-relay");
+  assert.equal(backendMode("news"), "free-relay");
+  assert.equal(backendMode("screenshot"), "free-relay");
 });
 
-test("1.8.0 news: direct-only, signs $0.003 and forwards filters", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
+test("1.8.0 news: paid mode signs $0.003 and forwards filters", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
   const payer = privateKeyToAccount(key).address; let signed;
   mockApi({ op: "news", paid: (p) => { signed = p; return okResult({ results: [] , topic: "news" }, payer); } });
   const res = await call(await connect(), "agentsearch_news_search", { query: "x402", max_results: 7, freshness: "week", include_domains: ["coindesk.com"] });
@@ -227,8 +241,8 @@ test("1.8.0 paid search and search_and_read forward filters; extract forwards ma
   assert.deepEqual(calls[1].body, { url: "https://example.com", max_chars: 50000, include_links: false });
 });
 
-test("1.8.0 screenshot: signs $0.004, returns an MCP image block and metadata without base64", async () => {
-  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key;
+test("1.8.0 screenshot: paid mode signs $0.004, returns an MCP image block and metadata without base64", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_MODE = "paid";
   const payer = privateKeyToAccount(key).address;
   mockApi({ op: "screenshot", paid: () => okResult({ url: "https://example.com/", title: "Example", status_code: 200,
     screenshot: { format: "png", width: 390, height: 844, bytes: 3, base64: "iVBO" }, full_page: false, viewport: { width: 390, height: 844 }, warnings: [] }, payer) });
@@ -240,16 +254,25 @@ test("1.8.0 screenshot: signs $0.004, returns an MCP image block and metadata wi
   assert.equal(meta.payment.amountAtomic, "4000"); assert.equal(meta.response.screenshot.base64, undefined); assert.equal(meta.response.screenshot.width, 390);
 });
 
-test("1.8.0 news and screenshot are direct-only: no key, pocket route, and self-hosted refuse without signing", async () => {
-  globalThis.fetch = async () => assert.fail("no network call expected");
-  for (const [tool, args] of [["agentsearch_news_search", { query: "qq" }], ["agentsearch_screenshot", { url: "https://example.com" }]]) {
-    delete process.env.AGENTSEARCH_WALLET_PRIVATE_KEY; delete process.env.AGENTSEARCH_BASE_URL;
+test("1.8.7 news and screenshot: paid pocket and self-hosted refuse; no key uses the free relay", async () => {
+  for (const [tool, args, path] of [["agentsearch_news_search", { query: "qq" }, "/v1/news"], ["agentsearch_screenshot", { url: "https://example.com" }, "/v1/screenshot"]]) {
+    delete process.env.AGENTSEARCH_WALLET_PRIVATE_KEY; delete process.env.AGENTSEARCH_BASE_URL; delete process.env.AGENTSEARCH_PAYMENT_ROUTE; delete process.env.AGENTSEARCH_MODE;
+    const relayCalls = [];
+    globalThis.fetch = async (url) => {
+      relayCalls.push(String(url));
+      if (tool === "agentsearch_screenshot") {
+        return new Response(JSON.stringify({ url: "https://example.com/", screenshot: { format: "png", width: 10, height: 10, bytes: 3, base64: "iVBO" } }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ query: "qq", results: [] }), { status: 200, headers: { "content-type": "application/json" } });
+    };
     let res = await call(await connect(), tool, args);
-    assert.equal(res.isError, true); assert.match(res.content[0].text, /wallet key/i);
-    process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket";
+    assert.equal(res.isError, undefined, res.content[0].text);
+    assert.ok(relayCalls.some((u) => u.includes(path)), relayCalls.join(","));
+    process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = key; process.env.AGENTSEARCH_PAYMENT_ROUTE = "pocket"; process.env.AGENTSEARCH_MODE = "paid";
+    globalThis.fetch = async () => assert.fail("no network call expected");
     res = await call(await connect(), tool, args);
     assert.equal(res.isError, true); assert.match(res.content[0].text, new RegExp(tool)); assert.match(res.content[0].text, /not on Pocket/i);
-    delete process.env.AGENTSEARCH_PAYMENT_ROUTE; process.env.AGENTSEARCH_BASE_URL = "https://self.example";
+    delete process.env.AGENTSEARCH_PAYMENT_ROUTE; delete process.env.AGENTSEARCH_MODE; process.env.AGENTSEARCH_BASE_URL = "https://self.example";
     res = await call(await connect(), tool, args);
     assert.equal(res.isError, true); assert.match(res.content[0].text, /not on a self-hosted/);
   }

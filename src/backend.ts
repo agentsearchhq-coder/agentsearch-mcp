@@ -4,7 +4,7 @@ import { callPortal, hasWalletKey, PortalError, type PortalOperation } from "./p
 import { callDirect, directEnabled, DIRECT_PRICES_USD, DIRECT_SETUP_MESSAGE, isDirectOnly, type DirectOperation } from "./direct.js";
 import { invalidRouteMessage, paidRoute } from "./route.js";
 import { AgentSearchHttpError } from "./client.js";
-import { FreeTrialUnavailableError, freeTrialEnabled, paidOnlyMessage, relaySearch, relayTrial } from "./relay.js";
+import { FreeTrialUnavailableError, freeTrialEnabled, paidOnlyMessage, relayNews, relayScreenshot, relaySearch, relaySearchAndRead, relayTrial } from "./relay.js";
 
 export type BackendMode = "self-hosted" | "pocket" | "direct" | "free-relay";
 
@@ -28,7 +28,7 @@ export function invalidModeMessage(): string {
   return `${MODE_ENV_VAR} must be one of 'free', 'paid' or 'auto' (got ${JSON.stringify((process.env[MODE_ENV_VAR] ?? "").trim())}). No call was made.`;
 }
 
-/** Which backend serves an operation. Search: free relay by default, portal only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. */
+/** Which backend serves an operation. Search, news, search_and_read and screenshot: free relay by default, paid (direct) only in paid mode (or auto + wallet key). Extract/render: portal when a wallet key is set, else the relay's free trial. News, search_and_read and screenshot are not on Pocket or a self-hosted base URL. */
 const DIRECT_ONLY_TOOL: Record<string, string> = { search_and_read: "agentsearch_search_and_read", news: "agentsearch_news_search", screenshot: "agentsearch_screenshot" };
 
 export function directOnlyPocketMessage(op: DirectOperation): string {
@@ -46,10 +46,14 @@ export const SEARCH_AND_READ_SELF_HOSTED_MESSAGE = directOnlySelfHostedMessage("
 export function backendMode(op: DirectOperation = "search"): BackendMode {
   if (isDirectOnly(op)) {
     if (hasBaseUrl()) return "self-hosted";
-    if (!hasWalletKey()) return "free-relay";
-    const route = paidRoute();
-    if (route === "pocket") return "pocket";
-    return "direct";
+    // 1.8.7: match search — free relay by default even with a wallet key; paid (or auto + wallet) uses the direct x402 API.
+    const sm = searchMode();
+    if (sm === "paid" || (sm === "auto" && hasWalletKey())) {
+      const route = paidRoute();
+      if (route === "pocket") return "pocket";
+      return "direct";
+    }
+    return "free-relay";
   }
   const m = paidBackend(op as PortalOperation);
   // Since 1.6.0 the paid rail is AgentSearch's own x402 API unless AGENTSEARCH_PAYMENT_ROUTE=pocket (or AGENTSEARCH_X402_DIRECT=0); nothing else changes.
@@ -76,7 +80,7 @@ export function screenshotResult(result: Record<string, unknown>): ToolResult {
   const data = typeof shot.base64 === "string" ? shot.base64 : "";
   const format = shot.format === "jpeg" || shot.format === "jpg" ? "jpeg" : "png";
   const { base64: _omit, ...shotMeta } = shot;
-  const meta = { ...result, response: { ...response, screenshot: { ...shotMeta, ...(data ? { returned_as: "image content block" } : {}) } }, note: DIRECT_RESPONSE_NOTE };
+  const meta = { ...result, response: { ...response, screenshot: { ...shotMeta, ...(data ? { returned_as: "image content block" } : {}) } }, note: (typeof result.note === "string" && result.note) ? result.note : DIRECT_RESPONSE_NOTE };
   const content: ToolContent[] = [];
   if (data) content.push({ type: "image", data, mimeType: `image/${format}` });
   content.push({ type: "text", text: text(meta) });
@@ -101,7 +105,12 @@ export async function runOperation(
   try {
     if (isDirectOnly(op)) {
       if (mode === "self-hosted") return fail(directOnlySelfHostedMessage(op));
-      if (mode === "free-relay") return fail(DIRECT_SETUP_MESSAGE);
+      if (searchMode() === "invalid") return fail(invalidModeMessage());
+      if (mode === "free-relay") {
+        if (op === "news") return ok(await relayNews(body as { query: string; max_results?: number }));
+        if (op === "search_and_read") return ok(await relaySearchAndRead(body as { query: string; num_results?: number; max_results?: number; max_chars?: number; render_fallback?: boolean }));
+        return screenshotResult(await relayScreenshot(body as { url: string; format?: string; full_page?: boolean; viewport?: { width?: number; height?: number } }) as Record<string, unknown>);
+      }
       if (paidRoute() === "invalid") return fail(invalidRouteMessage());
       if (mode === "pocket") return fail(directOnlyPocketMessage(op));
       const clean: Record<string, unknown> = {};
@@ -144,7 +153,7 @@ export async function runOperation(
       return fail(Object.keys(err.detail).length ? { message: err.message, ...err.detail } : err.message);
     }
     if (err instanceof AgentSearchHttpError && err.status === 429 && mode === "free-relay") return fail(err.body);
-    if (err instanceof AgentSearchHttpError && mode === "free-relay" && op !== "search") return fail(`Free trial ${op} failed (HTTP ${err.status}, not counted against the trial): ${err.body.slice(0, 500)}`);
+    if (err instanceof AgentSearchHttpError && mode === "free-relay" && (op === "extract" || op === "render")) return fail(`Free trial ${op} failed (HTTP ${err.status}, not counted against the trial): ${err.body.slice(0, 500)}`);
     return fail(err instanceof Error ? err.message : String(err));
   }
 }

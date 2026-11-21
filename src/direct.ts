@@ -22,6 +22,7 @@ import {
 
 export type DirectOperation = PortalOperation | "search_and_read" | "news" | "screenshot";
 /** Operations that exist only on the direct x402 API (not on the free relay, Pocket, or a self-hosted base URL). */
+/** Not on Pocket or a self-hosted base URL. Since 1.8.7 they use the free relay by default, like search. */
 export const DIRECT_ONLY_OPS = ["search_and_read", "news", "screenshot"] as const;
 export function isDirectOnly(op: DirectOperation): op is (typeof DIRECT_ONLY_OPS)[number] {
   return (DIRECT_ONLY_OPS as readonly string[]).includes(op);
@@ -46,7 +47,7 @@ export function directEnabled(): boolean {
 export const DIRECT_SETUP_MESSAGE = [
   "This paid call needs a wallet: no wallet key is configured (agentsearch_web_search is free by default and only pays when AGENTSEARCH_MODE=paid or auto).",
   "Set AGENTSEARCH_WALLET_PRIVATE_KEY (or POCKET_PRIVATE_KEY) to the 64-hex private key of a NEW wallet made only for this, fund it with a little USDC on Base (no ETH needed), and restart the client.",
-  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render}, search_and_read ${DIRECT_PRICES_USD.search_and_read}, news ${DIRECT_PRICES_USD.news}, screenshot ${DIRECT_PRICES_USD.screenshot} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.020 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Search + Read, News and Screenshot are direct-only.`,
+  `Paid calls go to AgentSearch's own x402 API by default: search ${DIRECT_PRICES_USD.search}, extract ${DIRECT_PRICES_USD.extract}, render ${DIRECT_PRICES_USD.render}, search_and_read ${DIRECT_PRICES_USD.search_and_read}, news ${DIRECT_PRICES_USD.news}, screenshot ${DIRECT_PRICES_USD.screenshot} per call, paid to AgentSearch at ${DEFAULT_DIRECT_URL} (docs: https://agentsearchhq.com/docs/x402). Spending is capped at $0.020 per call and AGENTSEARCH_MAX_TOTAL_ATOMIC per session (default $1.00). Paid Search + Read, News and Screenshot go to the direct API (they also have a free relay allowance of 10 calls per IP each, like search; they are not on Pocket).`,
   "Set AGENTSEARCH_PAYMENT_ROUTE=pocket to pay through the Pocket Network Agentic Portal instead ($0.005 per call). Or set AGENTSEARCH_BASE_URL to your own self-hosted AgentSearch-compatible API.",
   "Wallet setup takes about 2 minutes: https://agentsearchhq.com/wallet-setup",
 ].join(" ");

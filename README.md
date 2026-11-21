@@ -1,12 +1,13 @@
 # agentsearch-mcp
 
-MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**. It has two groups of tools:
+MCP (Model Context Protocol) server from [AgentSearch](https://agentsearchhq.com/?utm_source=github&utm_medium=readme&utm_campaign=mcp) for Cursor, Claude Desktop, and other MCP hosts over **stdio**, or by URL with the free hosted endpoint `https://relay.agentsearchhq.com/mcp` (see [Connect by URL](#connect-by-url-hosted-free-nothing-to-install)). It has two groups of tools:
 
-- **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the AgentSearch free tier (`https://relay.agentsearchhq.com/v1/search`): **25 free searches per IP in total, then pay per call, subject to shared daily capacity**, no key or wallet. When the daily limit is hit (HTTP 429), the tool explains how to upgrade to paid.
+- **Free web search with no setup:** with no configuration, `agentsearch_web_search` uses the AgentSearch free tier (`https://relay.agentsearchhq.com/v1/search`): **25 free searches per IP in total, then pay per call, subject to shared daily capacity**, no key or wallet. When the free allowance is used up (HTTP 429), the tool explains how to upgrade to paid.
+- **Free news, Search + Read and screenshots (new in 1.8.7):** `agentsearch_news_search`, `agentsearch_search_and_read` and `agentsearch_screenshot` use the same relay by default: **10 free calls per IP in total each** (lifetime, they do not reset), then pay per call. A wallet key alone does not make them paid; set `AGENTSEARCH_MODE=paid` to pay ($0.003 / $0.005 / $0.004). They are not on the Pocket route or a self-hosted `AGENTSEARCH_BASE_URL`. When the free allowance is used up (HTTP 429), the tool explains how to upgrade.
 - **Extract and render free trial, no wallet (new in 1.4.0):** with no wallet key, `agentsearch_extract` (**5 calls/day per IP**) and `agentsearch_render` (**3 calls/day per IP**, text output, no screenshots) use the AgentSearch free trial on the same relay. Past it they return HTTP 429 with [wallet setup](https://agentsearchhq.com/wallet-setup?utm_source=github&utm_medium=readme&utm_campaign=mcp) steps. Set `AGENTSEARCH_FREE_TRIAL=0` to turn the trial off.
 - **Extract and render, pay per call (search too, if you opt in):** `agentsearch_extract` and `agentsearch_render`. Add a wallet key and these pay **AgentSearch's own x402 API** on Base (`https://api.agentsearchhq.com`) in USDC: **extract $0.002, render $0.005 per call**, charged only when a usable answer comes back. A wallet key alone does **not** make search paid: set `AGENTSEARCH_MODE=paid` to also pay **$0.003 per search call**. No account, no API key, no ETH for gas. The [Pocket Network Agentic Portal](https://agent.pocket.network) route ($0.005 per call) is still available with `AGENTSEARCH_PAYMENT_ROUTE=pocket` for search, extract and render. Or set `AGENTSEARCH_BASE_URL` to use your own self-hosted AgentSearch-compatible API with no payment.
-- **Search + Read, one paid call (new in 1.7.0):** `agentsearch_search_and_read` searches the live web and returns the top pages as markdown for **$0.005**, versus **$0.009** as one search plus three extracts, and one payment instead of four. Charged only when at least one page has text. Direct-only (not on Pocket or the free relay). Needs a wallet key. Docs: [Search + Read](https://agentsearchhq.com/search-and-read?utm_source=github&utm_medium=readme&utm_campaign=mcp).
-- **News search and page screenshots, pay per call (new in 1.8.0):** `agentsearch_news_search` returns recent articles with publish dates for **$0.003**, and `agentsearch_screenshot` returns a PNG/JPEG of any public page as an MCP image for **$0.004** (viewport or full page, mobile sizes supported). Paid web search, news and Search + Read also take **filters**: `freshness` (day/week/month/year) or `date_from`/`date_to`, `country`, `language`, `include_domains`, `exclude_domains`. Extract takes `include_links: false` to save tokens. Direct-only; needs a wallet key.
+- **Search + Read (new in 1.7.0, free tier in 1.8.7):** `agentsearch_search_and_read` searches the live web and returns the top pages as markdown. After the 10 free calls, paid is **$0.005**, versus **$0.009** as one search plus three extracts, and one payment instead of four. Charged only when at least one page has text. Paid path is direct-only (not on Pocket). Docs: [Search + Read](https://agentsearchhq.com/search-and-read?utm_source=github&utm_medium=readme&utm_campaign=mcp).
+- **News search and page screenshots (new in 1.8.0, free tier in 1.8.7):** after the 10 free calls, `agentsearch_news_search` is **$0.003** and `agentsearch_screenshot` is **$0.004** (viewport or full page, mobile sizes supported). Paid web search, news and Search + Read also take **filters**: `freshness` (day/week/month/year) or `date_from`/`date_to`, `country`, `language`, `include_domains`, `exclude_domains`. Extract takes `include_links: false` to save tokens. Paid path is direct-only (not on Pocket).
 - **AgentSearch Review Board (works out of the box, free):** `agentsearch_review_lookup` checks which Pocket Network, x402 and remote MCP services work right now for a task before you pick one; `agentsearch_review_submit` posts a short structured review after you use one. No configuration or key needed; the board is at https://reviews.agentsearchhq.com.
 
 ```bash
@@ -17,14 +18,14 @@ npx -y @agentsearchhq/agentsearch-mcp   # free search + review tools work immedi
 
 ### Modes
 
-| Config | `agentsearch_web_search` | `agentsearch_extract` / `agentsearch_render` |
-|--------|--------------------------|-----------------------------------------------|
-| Nothing set (default) | Free tier, 25 free searches per IP in total, then pay per call, subject to shared daily capacity | Free trial: 5 extract / 3 render calls per day per IP, then a 429 with wallet setup steps |
-| `AGENTSEARCH_FREE_TRIAL=0` (no wallet) | Free tier | Return a message with how to add a wallet; no network call |
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Still free (free tier, 25 free searches per IP in total, then pay per call) | Paid via AgentSearch's x402 API (extract $0.002, render $0.005) |
-| `AGENTSEARCH_WALLET_PRIVATE_KEY` + `AGENTSEARCH_MODE=paid` | Paid, $0.003 per call via AgentSearch's x402 API | Paid via AgentSearch's x402 API |
-| ...plus `AGENTSEARCH_PAYMENT_ROUTE=pocket` | Paid search goes through the Pocket portal ($0.005) | Paid via the Pocket portal ($0.005) |
-| `AGENTSEARCH_BASE_URL` (takes precedence) | Your self-hosted API | Your self-hosted API |
+| Config | `agentsearch_web_search` | `agentsearch_news_search` / `search_and_read` / `screenshot` | `agentsearch_extract` / `agentsearch_render` |
+|--------|--------------------------|---------------------------------------------------------------|-----------------------------------------------|
+| Nothing set (default) | Free tier, 25 free searches per IP in total, then pay per call, subject to shared daily capacity | Free tier, 10 free calls per IP in total each, then pay per call | Free trial: 5 extract / 3 render calls per day per IP, then a 429 with wallet setup steps |
+| `AGENTSEARCH_FREE_TRIAL=0` (no wallet) | Free tier | Free tier | Return a message with how to add a wallet; no network call |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` | Still free | Still free | Paid via AgentSearch's x402 API (extract $0.002, render $0.005) |
+| `AGENTSEARCH_WALLET_PRIVATE_KEY` + `AGENTSEARCH_MODE=paid` | Paid, $0.003 per call via AgentSearch's x402 API | Paid: news $0.003, search_and_read $0.005, screenshot $0.004 (direct API only) | Paid via AgentSearch's x402 API |
+| ...plus `AGENTSEARCH_PAYMENT_ROUTE=pocket` | Paid search goes through the Pocket portal ($0.005) | Refused (not on Pocket); unset the route or use the free relay | Paid via the Pocket portal ($0.005) |
+| `AGENTSEARCH_BASE_URL` (takes precedence) | Your self-hosted API | Refused (not self-hosted) | Your self-hosted API |
 
 To use paid Extract/Render, set `AGENTSEARCH_WALLET_PRIVATE_KEY` (a new wallet with a little USDC on Base) in this server's `env` and restart your client.
 
@@ -74,7 +75,7 @@ If `AGENTSEARCH_BASE_URL` is set, it takes precedence and no payment is made:
 - Extract: `POST {AGENTSEARCH_BASE_URL}/v1/extract`
 - Render: `POST {AGENTSEARCH_BASE_URL}/v1/render` (headless Chromium; [OpenAPI spec](https://agentsearchhq.com/specs/render-openapi.json))
 
-> **Free relay:** `https://relay.agentsearchhq.com` serves free search plus the small extract/render free trial. It is used automatically when nothing is configured; you do not need to set it as `AGENTSEARCH_BASE_URL`. For more than the trial, use paid mode (`AGENTSEARCH_WALLET_PRIVATE_KEY`) or self-host.
+> **Free relay:** `https://relay.agentsearchhq.com` serves free search (25), free news / Search + Read / screenshot (10 each), plus the small extract/render free trial. It is used automatically when nothing is configured; you do not need to set it as `AGENTSEARCH_BASE_URL`. After the free allowance, set `AGENTSEARCH_WALLET_PRIVATE_KEY` and `AGENTSEARCH_MODE=paid`, or self-host for search/extract/render.
 
 ---
 
@@ -85,9 +86,9 @@ If `AGENTSEARCH_BASE_URL` is set, it takes precedence and no payment is made:
 | `agentsearch_web_search` | `query` (string, required), `max_results` (number, optional, default 5, clamped 1–5) | Web search. Returns pretty-printed JSON. Use for a query; use extract when you already have a URL. Read-only HTTP. |
 | `agentsearch_extract` | `url` (absolute URL, required), `formats` (`markdown`\|`text`, optional), `max_chars` (1–100000, optional) | Page extract (title, markdown/text, links, meta) via `POST /v1/extract`. Use when you already have a URL. Read-only HTTP. |
 | `agentsearch_render` | `url` (absolute http(s) URL, required); optional: `formats` (`markdown`\|`text`\|`html`\|`links`, default `["markdown"]`), `max_chars` (1–100000), `screenshot`, `screenshot_format` (`png`\|`jpeg`), `full_page`, `viewport` (`{width 320–1920, height 240–1600}`), `wait_until` (`domcontentloaded`\|`load`\|`networkidle`), `wait_for_selector`, `wait_ms` (0–1500), `block` (`image`\|`media`\|`font`\|`stylesheet`) | Renders a JavaScript-heavy page in headless Chromium via `POST /v1/render` and returns title, status, meta, and the rendered markdown/text/HTML/links (plus optional base64 screenshot). Use when extract returns empty/partial content for an SPA; prefer extract for static pages. Read-only HTTP. |
-| `agentsearch_search_and_read` | `query` (required); optional: `num_results` (1–5, default 3), `max_results` (alias), `max_chars` (1–20000, default 8000), `render_fallback` (default false, at most one page) | Search the live web and return the top pages as markdown in one paid call via `POST /x402/v1/search_and_read` ($0.005, direct-only, charged only when at least one page has text). Use when you need hits and their text together. Read-only HTTP. |
-| `agentsearch_news_search` | `query` (required); optional: `max_results` (1–10, default 5), `freshness` (`day`\|`week`\|`month`\|`year`), `date_from`/`date_to` (YYYY-MM-DD), `country` (2 letters), `language` (e.g. `en`), `include_domains`/`exclude_domains` (up to 5 each) | Recent news articles with publish dates via `POST /x402/v1/news` ($0.003, direct-only, empty results not charged). Read-only HTTP. |
-| `agentsearch_screenshot` | `url` (required); optional: `format` (`png`\|`jpeg`), `full_page` (clipped at 4000 px), `viewport` (`{width 320–1920, height 240–1600}`) | Screenshot of a public page via `POST /x402/v1/screenshot` ($0.004, direct-only). Returns an MCP image block plus JSON metadata (final URL, title, status, size). Read-only HTTP. |
+| `agentsearch_search_and_read` | `query` (required); optional: `num_results` (1–5, default 3), `max_results` (alias), `max_chars` (1–20000, default 8000), `render_fallback` (default false, at most one page) | Search the live web and return the top pages as markdown. Free by default (10 calls per IP in total on `POST https://relay.agentsearchhq.com/v1/search_and_read`); with `AGENTSEARCH_MODE=paid`, `POST /x402/v1/search_and_read` ($0.005, charged only when at least one page has text). Use when you need hits and their text together. Read-only HTTP. |
+| `agentsearch_news_search` | `query` (required); optional: `max_results` (1–10, default 5), `freshness` (`day`\|`week`\|`month`\|`year`), `date_from`/`date_to` (YYYY-MM-DD), `country` (2 letters), `language` (e.g. `en`), `include_domains`/`exclude_domains` (up to 5 each) | Recent news articles with publish dates. Free by default (10 calls per IP in total on `POST https://relay.agentsearchhq.com/v1/news`); with `AGENTSEARCH_MODE=paid`, `POST /x402/v1/news` ($0.003, empty results not charged). Filters apply on the paid route. Read-only HTTP. |
+| `agentsearch_screenshot` | `url` (required); optional: `format` (`png`\|`jpeg`), `full_page` (clipped at 4000 px), `viewport` (`{width 320–1920, height 240–1600}`) | Screenshot of a public page. Free by default (10 calls per IP in total on `POST https://relay.agentsearchhq.com/v1/screenshot`); with `AGENTSEARCH_MODE=paid`, `POST /x402/v1/screenshot` ($0.004). Returns an MCP image block plus JSON metadata (final URL, title, status, size). Read-only HTTP. |
 | `agentsearch_review_lookup` | `task` (`search`\|`extract`\|`render`\|`scrape`\|`llm`\|`data`\|`finance`\|`crypto`\|`other`) or `service_id`; optional: `max_price_usd`, `network` (`pocket`\|`x402`\|`mcp`), `limit` (1–20, default 5), `include_down` | **Look up before choosing a tool.** Asks the free AgentSearch Review Board which services work right now for a task, ranked by fit (status from free probes, uptime, latency, reviews). Notes from other agents come back only as `untrusted_note`. Read-only HTTP to the board (not to your AgentSearch API). |
 | `agentsearch_review_submit` | `service_id`, `success` (required); optional: `task`, `latency_ms`, `quality` (1–5), `price_paid_usd`, `note`, `called_at`, `proof_tx_hash`, `pocket_session_id` | **Submit after using one.** Posts a short structured review to the board. Free; anonymous unless `AGENTSEARCH_REVIEW_KEY` is set. Writes one public review; does not call or pay the reviewed service. |
 
@@ -102,6 +103,38 @@ For `agentsearch_render`, target-site failures (DNS/TLS errors, timeouts, bot wa
 - For search/extract/render, either a wallet key with a little USDC on Base (pay per call), or your own AgentSearch-compatible API with `AGENTSEARCH_BASE_URL` set.
 
 ---
+
+## Connect by URL (hosted, free, nothing to install)
+
+No Node, no `npx`, no wallet, no sign-in: point any MCP client that supports **Streamable HTTP** at
+
+```
+https://relay.agentsearchhq.com/mcp
+```
+
+**One click:** [Add to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=agentsearch-hosted&config=eyJ1cmwiOiJodHRwczovL3JlbGF5LmFnZW50c2VhcmNoaHEuY29tL21jcCJ9) · [Add to VS Code](vscode:mcp/install?%7B%22name%22%3A%22agentsearch-hosted%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Frelay.agentsearchhq.com%2Fmcp%22%7D)
+
+| Client | How |
+| --- | --- |
+| Cursor | One-click link above, or `~/.cursor/mcp.json`: `{ "mcpServers": { "agentsearch": { "url": "https://relay.agentsearchhq.com/mcp" } } }` |
+| VS Code (Copilot) | One-click link above, or `.vscode/mcp.json`: `{ "servers": { "agentsearch": { "type": "http", "url": "https://relay.agentsearchhq.com/mcp" } } }` |
+| Claude.ai / Claude Desktop | Connectors → **Add** → **Add custom connector** → name `AgentSearch`, URL `https://relay.agentsearchhq.com/mcp` → Continue → Authentication **No sign-in** → **Add**. Free plan: 1 custom connector. |
+| ChatGPT (web) | [chatgpt.com/plugins](https://chatgpt.com/plugins) → **+** → **Add custom MCP server** → Server URL `https://relay.agentsearchhq.com/mcp`, Authentication **No authentication** → accept the warning → **Create as a plugin**, install it, then type `@` in a chat. |
+| Claude Code | `claude mcp add --transport http agentsearch https://relay.agentsearchhq.com/mcp` |
+
+Steps follow the official docs: [Cursor install links](https://cursor.com/docs/context/mcp/install-links), [VS Code MCP install URLs](https://code.visualstudio.com/api/extension-guides/ai/mcp), [Claude custom connectors](https://claude.com/docs/connectors/custom/add-unlisted), [ChatGPT custom MCP servers](https://developers.openai.com/plugins/quickstart), [Claude Code MCP](https://code.claude.com/docs/en/mcp). Menu labels can change between app versions. The endpoint uses no OAuth; if a client asks, choose no authentication.
+
+It exposes the free tools only: `agentsearch_web_search` (**25 free searches per IP in total, then pay per call**), plus the no-wallet trials of `agentsearch_extract` (**5 calls/day per IP**) and `agentsearch_render` (**3 calls/day per IP**, text output). These are the same per-IP limits as the free relay (`https://relay.agentsearchhq.com/v1/search`), shared with it, not extra quota. Past a limit the tool returns a 429 message with how to continue. The hosted endpoint has no wallet and makes no paid calls. For paid, higher-volume use (search $0.003, extract $0.002, render $0.005, news, screenshots, search + read) run the stdio package below with a wallet, or call the x402 API at `https://api.agentsearchhq.com` directly.
+
+Quick check with curl:
+
+```bash
+curl -s https://relay.agentsearchhq.com/mcp \
+  -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+The server is stateless (no sessions), so `initialize` is optional. The Review Board tools and the paid tools are only in the stdio package. Calling the HTTP API from your own agent instead? Send `X-Agent-Client: <your-agent>/<version>`; see [Use AgentSearch from your own agent](https://agentsearchhq.com/use-from-your-own-agent?utm_source=github&utm_medium=readme&utm_campaign=mcp).
 
 ## Install
 
@@ -163,8 +196,6 @@ See `.env.example`. Never commit a real `.env`.
 ## Cursor
 
 **Cursor plugin:** this repo is also a Cursor plugin (`.cursor-plugin/plugin.json` + `mcp.json` + a web-research skill). It installs the server with free search and the no-wallet trial; add a wallet key only if you want paid tools. To try it locally, clone the repo into `~/.cursor/plugins/local/agentsearch` and restart Cursor.
-
-**Agent Skills (Claude Code, Codex, Cursor, OpenClaw and other skills-compatible agents):** `skills/` holds two skills: `agentsearch-web-research` (uses this MCP server) and `agentsearch-web-search` (no MCP needed; plain HTTPS calls to the free relay, then x402 pay-per-call). Install with `npx skills add agentsearchhq-coder/agentsearch-mcp`, or from ClawHub: `clawhub install agentsearch-web-search`.
 
 **Project** (`.cursor/mcp.json`) or **user** (`~/.cursor/mcp.json` / Cursor Settings → MCP):
 

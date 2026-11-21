@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../dist/server.js";
 import { backendMode, searchMode } from "../dist/backend.js";
-import { FREE_RELAY_LIMIT_MESSAGE, FREE_RELAY_URL, WALLET_SETUP_URL, freeTrialLimitMessage, paidOnlyMessage } from "../dist/relay.js";
+import { FREE_RELAY_LIMIT_MESSAGE, FREE_RELAY_URL, WALLET_SETUP_URL, freeLifeToolLimitMessage, freeTrialLimitMessage, paidOnlyMessage } from "../dist/relay.js";
 
 const ENV_KEYS = ["AGENTSEARCH_FREE_TRIAL", "AGENTSEARCH_MODE", "AGENTSEARCH_BASE_URL", "AGENTSEARCH_API_KEY", "AGENTSEARCH_WALLET_PRIVATE_KEY", "POCKET_PRIVATE_KEY", "AGENTSEARCH_PAYMENT_ROUTE", "AGENTSEARCH_X402_DIRECT"];
 const KEY = "0x" + "11".repeat(32);
@@ -184,7 +184,7 @@ test("no wallet: extract uses the relay free trial (POST /v1/extract, no auth, c
   assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/extract`);
   assert.equal(calls[0].body.url, "https://example.com/");
   assert.equal(calls[0].init.headers.authorization, undefined);
-  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1.8.5$/);
+  assert.match(calls[0].init.headers["x-agent-client"], /^agentsearch-mcp\/1.8.7$/);
   const data = JSON.parse(r.content[0].text);
   assert.equal(data.title, "Example Domain");
   assert.equal(data.free_trial.remaining_today, 4);
@@ -283,4 +283,73 @@ test("1.8.1: relay 400 QUERY_TOO_SHORT is reported as non-retryable input error"
   assert.match(text, /\\"retryable\\":false/);
   assert.doesNotMatch(text, /\\"retryable\\":true/);
   assert.match(text, /fix the input instead of retrying unchanged/);
+});
+
+
+test("1.8.7: no config news, search_and_read and screenshot POST to the free relay with the client tag", async () => {
+  mock(200, { query: "qq", result_count: 1, provider: "x", results: [{ title: "T", url: "https://e.com" }] });
+  let r = await (await connect()).callTool({ name: "agentsearch_news_search", arguments: { query: "qq", max_results: 7 } });
+  assert.equal(r.isError, undefined, r.content[0].text);
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/news`);
+  assert.deepEqual(calls[0].body, { query: "qq", max_results: 7 });
+  assert.equal(calls[0].init.headers["x-agent-client"], "agentsearch-mcp/1.8.7");
+  assert.equal("provider" in JSON.parse(r.content[0].text), false);
+
+  calls = [];
+  mock(200, { query: "qq", extracted_count: 1, results: [{ title: "T", url: "https://e.com", text: "hi" }] });
+  r = await (await connect()).callTool({ name: "agentsearch_search_and_read", arguments: { query: "qq", num_results: 1, max_chars: 800 } });
+  assert.equal(r.isError, undefined, r.content[0].text);
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/search_and_read`);
+  assert.deepEqual(calls[0].body, { query: "qq", num_results: 1, max_chars: 800 });
+
+  calls = [];
+  mock(200, { url: "https://example.com/", screenshot: { format: "png", width: 1280, height: 800, bytes: 3, base64: "iVBO" } });
+  r = await (await connect()).callTool({ name: "agentsearch_screenshot", arguments: { url: "https://example.com" } });
+  assert.equal(r.isError, undefined, JSON.stringify(r.content));
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/screenshot`);
+  assert.deepEqual(calls[0].body, { url: "https://example.com" });
+  assert.equal(r.content[0].type, "image");
+  assert.equal(r.content[0].data, "iVBO");
+  const meta = JSON.parse(r.content[1].text);
+  assert.equal(meta.response.screenshot.width, 1280);
+  assert.equal(meta.response.screenshot.base64, undefined);
+});
+
+test("1.8.7: free relay 429 for news, search_and_read and screenshot returns the life-tool limit message", async () => {
+  for (const [name, args, op] of [
+    ["agentsearch_news_search", { query: "qq" }, "news"],
+    ["agentsearch_search_and_read", { query: "qq" }, "search_and_read"],
+    ["agentsearch_screenshot", { url: "https://example.com" }, "screenshot"],
+  ]) {
+    calls = [];
+    mock(429, { error: { code: "free_allowance_used", message: "used up" } });
+    const r = await (await connect()).callTool({ name, arguments: args });
+    assert.equal(r.isError, true, name);
+    assert.equal(r.content[0].text, freeLifeToolLimitMessage(op), name);
+    assert.match(r.content[0].text, /10 free/);
+    assert.match(r.content[0].text, /AGENTSEARCH_WALLET_PRIVATE_KEY/);
+  }
+});
+
+test("1.8.7: wallet key, default mode: news still uses the free relay; 429 tells the user to set AGENTSEARCH_MODE=paid", async () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
+  mock(200, { query: "qq", results: [] });
+  let r = await (await connect()).callTool({ name: "agentsearch_news_search", arguments: { query: "qq" } });
+  assert.equal(r.isError, undefined, r.content[0].text);
+  assert.equal(calls[0].url, `${FREE_RELAY_URL}/v1/news`);
+  calls = [];
+  mock(429, { error: { code: "free_allowance_used" } });
+  r = await (await connect()).callTool({ name: "agentsearch_news_search", arguments: { query: "qq" } });
+  assert.equal(r.isError, true);
+  assert.match(r.content[0].text, /AGENTSEARCH_MODE=paid/);
+  assert.match(r.content[0].text, /10 free news/);
+});
+
+test("1.8.7: default mode news/SAR/screenshot stay free-relay even when the paid route is pocket", () => {
+  process.env.AGENTSEARCH_WALLET_PRIVATE_KEY = KEY;
+  assert.equal(backendMode("news"), "free-relay");
+  assert.equal(backendMode("search_and_read"), "free-relay");
+  assert.equal(backendMode("screenshot"), "free-relay");
+  process.env.AGENTSEARCH_MODE = "paid";
+  assert.equal(backendMode("news"), "pocket");
 });
